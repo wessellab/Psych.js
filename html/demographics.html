@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <!-- Imports -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+    <script src='./cdn/index.min.js'></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <!-- Imports End -->
+</head>
+<body>
+
+    <div class='container m-5'>
+        <div>As a part of the research we are collecting general demographic information.</div>
+        <small class='text-muted'>We will never share your information with anyone else.</small>
+        <form class='mt-5'>
+
+            <div class="form-group">
+                <label class='font-weight-bold' for="country">Country</label>
+                <input type="text" class="form-control" id="country" value='United States'>
+            </div>
+
+            <div class="form-group">
+                <div class='font-weight-bold'>Gender</div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="gender" id="male" value="male" checked>
+                    <label class="form-check-label" for="gender">
+                        Male
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="gender" id="female" value="female">
+                    <label class="form-check-label" for="gender">
+                        Female
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="gender" id="other" value="other">
+                    <label class="form-check-label" for="gender">
+                        Other
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="gender" id="gender_na" value="gender_na">
+                    <label class="form-check-label" for="gender">
+                        N/A
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class='font-weight-bold'>Ethnicity</div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="ethnicity" id="hispanic_latino" value="hispanic_latino" checked>
+                    <label class="form-check-label" for="ethnicity">
+                        Hispanic or Latino
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="ethnicity" id="not_hispanic_latino" value="not_hispanic_latino">
+                    <label class="form-check-label" for="ethnicity">
+                        Not Hispanic or Latino
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class='font-weight-bold'>Race</div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="race" id="american_indian_or_alaska_native" value="american_indian_or_alaska_native" checked>
+                    <label class="form-check-label" for="race">
+                        American Indian or Alaska Native
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="race" id="native_american_or_other_pacific_islander" value="native_american_or_other_pacific_islander">
+                    <label class="form-check-label" for="race">
+                        Native American or Other Pacific Islander
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="race" id="black_or_african_american" value="black_or_african_american">
+                    <label class="form-check-label" for="race">
+                        Black or African American
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="race" id="asian" value="asian">
+                    <label class="form-check-label" for="race">
+                        Asian
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="race" id="white" value="white">
+                    <label class="form-check-label" for="race">
+                        White
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="race" id="race_na" value="race_na">
+                    <label class="form-check-label" for="race">
+                        N/A
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class='font-weight-bold'>Handedness</div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="handedness" id="left" value="left" checked>
+                    <label class="form-check-label" for="handedness">
+                        Left
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="handedness" id="right" value="right">
+                    <label class="form-check-label" for="handedness">
+                        Right
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="handedness" id="handedness_na" value="handedness_na">
+                    <label class="form-check-label" for="handedness">
+                        N/A
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class='font-weight-bold' for="country">Age</label>
+                <input type="text" class="form-control" id="age" value='23'>
+            </div>
+
+            <div class="form-group">
+                <div class='font-weight-bold'>Vision</div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="vision" id="normal" value="normal" checked>
+                    <label class="form-check-label" for="vision">
+                        Normal eyesight without needing glasses
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="vision" id="corrected" value="corrected">
+                    <label class="form-check-label" for="vision">
+                        Corrected Vision (wears glasses)
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="vision" id="poor" value="poor">
+                    <label class="form-check-label" for="vision">
+                        Poor eyesight and does not wear glasses
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class='font-weight-bold'>English Ability</div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="english" id="first" value="first" checked>
+                    <label class="form-check-label" for="english">
+                        First-language speaker
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="english" id="second" value="second">
+                    <label class="form-check-label" for="english">
+                        Second-language speaker
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="english" id="none" value="none">
+                    <label class="form-check-label" for="english">
+                        No English ability
+                    </label>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id='form-submit'>Submit</button>
+            
+            <!-- Modal -->
+            <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Read Carefully!</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    </div>
+                    <div class="modal-body">
+                        <p>We are about to begin the experiment.</p>
+                        <p>The experiment will enter full screen mode. Do not, at any time, exit full screen mode, until the experiment is complete.</p>
+                        <p>If you do not want to start yet, click "Cancel"</p>
+                        <p>If you are ready, click "Begin"</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal" id='cancel-btn'>Cancel</button>
+                        <button type="button" class="btn btn-primary" id='start-btn'>Begin</button>
+                    </div>
+                </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+</body>
+</html>
