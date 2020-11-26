@@ -7,7 +7,7 @@ var _createClass = function () { function defineProperties(target, props) { for 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var ApiClient = function () {
-    function ApiClient(subject_number, project_name, trialseq) {
+    function ApiClient(subject_number, project_name, demographics, trialseq) {
         _classCallCheck(this, ApiClient);
 
         this.base_url = 'http://localhost:8888';
@@ -16,6 +16,7 @@ var ApiClient = function () {
         this.subject_number = subject_number;
         this.trialseq = trialseq;
         this.project_name = project_name;
+        this.demographics = demographics;
     }
 
     _createClass(ApiClient, [{
@@ -27,6 +28,7 @@ var ApiClient = function () {
                 trialseq: this.trialseq.values,
                 subject_number: this.subject_number,
                 project_name: this.project_name,
+                demographics: this.demographics,
                 is_training: is_training
             };
 
@@ -71,9 +73,6 @@ var PsychTime = function () {
                     var now = performance.now();
                     var e = _this.elapsed();
                     if (_this.flag || _this.isReady(time, e) && Math.abs(time - e) < Math.abs(time - e - _this.drift)) {
-                        console.log('Elapsed: ' + e);
-                        console.log('Drift: ' + _this.drift);
-                        console.log('Intervals: ' + _this.intervals);
                         clearInterval(i);
                         resolve();
                     } else {
@@ -198,9 +197,7 @@ var Psych = function () {
 
             return new Promise(function (resolve) {
 
-                axios.get('http://localhost:5051/demographics').then(function (_ref) {
-                    var data = _ref.data;
-
+                $.get('http://localhost:5051/demographics').then(function (data) {
 
                     // Insert the HTML
                     document.getElementById('root').innerHTML = data;

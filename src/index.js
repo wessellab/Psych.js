@@ -1,12 +1,13 @@
 class ApiClient {
 
-    constructor(subject_number, project_name, trialseq) {
+    constructor(subject_number, project_name, demographics, trialseq) {
         this.base_url = 'http://localhost:8888';
         this.save_route = '/wessellab.php';
         this.url = this.base_url + this.save_route;
         this.subject_number = subject_number;
         this.trialseq = trialseq;
         this.project_name = project_name;
+        this.demographics = demographics;
     }
 
     save(is_training = false) {
@@ -14,6 +15,7 @@ class ApiClient {
             trialseq: this.trialseq.values,
             subject_number: this.subject_number,
             project_name: this.project_name,
+            demographics: this.demographics,
             is_training
         }
 
@@ -51,9 +53,6 @@ class PsychTime {
                 const now = performance.now();
                 const e = this.elapsed();
                 if(this.flag || this.isReady(time, e) && Math.abs(time - e) < Math.abs(time - e - this.drift)) {
-                    console.log(`Elapsed: ${e}`);
-                    console.log(`Drift: ${this.drift}`);
-                    console.log(`Intervals: ${this.intervals}`);
                     clearInterval(i);
                     resolve();
                 } else {
@@ -160,8 +159,8 @@ class Psych {
 
         return new Promise((resolve) => {
 
-            axios.get('http://localhost:5051/demographics')
-                .then(({ data }) => {
+            $.get('http://localhost:5051/demographics')
+                .then(data => {
 
                     // Insert the HTML
                     document.getElementById('root').innerHTML = data;

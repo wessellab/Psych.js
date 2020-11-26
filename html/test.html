@@ -16,17 +16,18 @@
 
         (async () => {
 
+            const demos = await Psych.demographics();
+
             Psych.init({
                 backgroundColor: 'white',
                 textColor: 'black'
             });
 
             var trialseq = new Matrix(10, 5);
-            trialseq.set(2, 2, 5);
             console.log(trialseq.values);
-            var client = new ApiClient('subject-number', 'ALT', trialseq);
+            var client = new ApiClient('subject-number', 'ALT', demos, trialseq);
 
-            client.save(false)
+            client.save(true)
                 .then(res => {
                     console.log('Success!');
                     console.log(res);
