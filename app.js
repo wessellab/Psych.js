@@ -14,41 +14,15 @@ app.use(cors());
 
 // Static files
 app.use(express.static(path.join(process.cwd(), 'cdn')));
+app.use(express.static(path.join(process.cwd(), 'public')));
 
 // Body Parser
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-app.get('/demographics', async (req, res) => {
+app.get('/test', async (req, res) => {
 
-    return res.sendFile(path.resolve(__dirname, 'html/demographics.html'));
-
-})
-
-app.post('/save', async (req, res) => {
-
-    try {
-
-        const { id } = req.query;
-        const { trialseq } = req.body;
-
-        console.log(id);
-        console.log(trialseq);
-
-        return res.sendStatus(200);
-
-    } catch (error) {
-        return res.status(500).json({
-            msg: 'Internal Server Error',
-            error: error.toString()
-        })
-    }
-
-})
-
-app.get('/home', (req, res) => {
-
-    res.sendFile(path.resolve(__dirname, 'html/test.html'));
+    return res.json({ msg: 'Working!' })
 
 })
 
