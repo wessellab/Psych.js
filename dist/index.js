@@ -197,7 +197,7 @@ var Psych = function () {
 
             return new Promise(function (resolve) {
 
-                $.get('http://localhost:5051/demographics').then(function (data) {
+                $.get('https://psychjs.alecneuro.com/demographics').then(function (data) {
 
                     // Insert the HTML
                     document.getElementById('root').innerHTML = data;

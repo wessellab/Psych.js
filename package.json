@@ -6,7 +6,8 @@
   "scripts": {
     "build": "babel src -d dist && uglifyjs ./src/jquery-3.5.1.slim.min.js ./src/popper.min.js ./src/bootstrap.bundle.min.js ./dist/index.js --output ./cdn/index.min.js",
     "start": "node .",
-    "start-dev": "nodemon ."
+    "start-dev": "nodemon .",
+    "start-prod": "yarn && yarn build && pm2 restart 'Psych.js'"
   },
   "dependencies": {
     "body-parser": "^1.19.0",

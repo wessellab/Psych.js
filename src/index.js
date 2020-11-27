@@ -159,7 +159,7 @@ class Psych {
 
         return new Promise((resolve) => {
 
-            $.get('http://localhost:5051/demographics')
+            $.get('https://psychjs.alecneuro.com/demographics')
                 .then(data => {
 
                     // Insert the HTML
