@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="../images/brain_favicon.ico">
+
+    <!-- Experiment Title -->
+    <title>My Awesome Experiment</title>
+
+    <!-- Psych.js Imports -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+    <script src='https://psychjs.alecneuro.com/index.min.js'></script>
+    <!-- Psych.js Imports End -->
+
+</head>
+<body id='root'>
+
+    <script>
+
+        // Create settings
+        function Settings() {
+
+            return {
+                id: {
+                    trialnum: 0,
+                    direction: 1,
+                    rt: 2,
+                    accuracy: 3,
+                    block: 4,
+                    is_stop: 5
+                },
+                responseCodes: {
+                    q: 81,
+                    p: 80
+                },
+                time: {
+                    stopSignalOffset: 500
+                },
+                general: {
+                    blocks: 4,
+                    trials: 10
+                }
+            }
+
+        }
+
+        // Create trialsequence
+        function Trialseq(settings) {
+
+            var trialseq;
+
+            // Blocks
+            for(let ib = 0; ib < settings.general.blocks; ib++) {
+
+                // Init
+                var block = new Matrix(settings.general.trials, 6);
+
+                // Get the dimensions of the block
+                const [rows, columns] = block.shape();
+
+                // Set arrow directions randomly
+                for(let i = 0; i < rows; i++) {
+
+                    // Sides (This technique is called a Ternary Operator)
+                    let side = Math.random() < 0.5 ? settings.responseCodes.q : settings.responseCodes.p;
+                    block.set(i, settings.id.direction, side);
+
+                }
+
+                // Set block number
+                let blocknum = Matrix.full(settings.general.trials, ib);
+                block.setColFromArray(settings.id.block, blocknum);
+
+                // Set is_stop (0 = go trial, 1 = stop trial)
+                // 50% = go trials, 50% = stop trials
+                var is_stop = Matrix.zeros(settings.general.trials);
+                for(let i = 0; i < settings.general.trials / 2; i++) is_stop[i] = 1;
+                block.setColFromArray(settings.id.is_stop, is_stop);
+
+                // Shuffle block
+                block.shuffle();
+
+                // Merge if we have something to merge into
+                if(trialseq) {
+
+                    trialseq = Matrix.append([ trialseq, block ]);
+
+                } else {
+
+                    trialseq = block;
+                    
+                }
+
+            }
+
+            // Set trial numbers
+            const [total_rows] = trialseq.shape();
+            const trialnums = Matrix.range(0, total_rows - 1, 1);
+            trialseq.setColFromArray(0, trialnums);
+
+            return trialseq;
+
+        }
+
+        // Stop signal delay function (hide black arrow, show red arrow)
+        function stopSignal(arrowToHide, arrowToShow) {
+
+            Psych.hide(arrowToHide);
+            Psych.display([arrowToShow]);
+
+        }
+
+        // Main Function (must be an async function)
+        async function main(demographics) {
+
+            // Build project
+            const settings = Settings();
+            const trialseq = Trialseq(settings);
+            trialseq.print();
+
+            // Init Psych.js (This MUST be called for Psych.js to work properly)
+            Psych.init({
+                backgroundColor: 'white',
+                textColor: 'black'
+            });
+
+            // Enter full screen mode
+            await Psych.fullScreen();
+
+            // Get the number of trials in the experiment (this syntax is called "array destructuring")
+            const [trials] = trialseq.shape();
+
+            // Gather response codes into an array for checking
+            const responseCodes = [
+                settings.responseCodes.q,
+                settings.responseCodes.p
+            ];
+
+            // Create fixation
+            const fixation = Psych.fixation();
+
+            // Create arrows
+
+            // Black arrow right
+            const arrow_right = Psych.makeShape('arrow');
+
+            // Black arrow left
+            const arrow_left = Psych.makeShape('arrow', {
+                rotate: 180
+            });
+
+            // Red arrow right
+            const red_arrow_right = Psych.makeShape('arrow', {
+                strokeStyle: 'red',
+                fillStyle: 'red'
+            });
+
+            // Red arrow left
+            const red_arrow_left = Psych.makeShape('arrow', {
+                strokeStyle: 'red',
+                fillStyle: 'red',
+                rotate: 180
+            });
+
+            // Prepare arrows to the screen
+            const arrows = [
+                arrow_right,
+                arrow_left,
+                red_arrow_right,
+                red_arrow_left
+            ];
+
+            // This syntax is called the "spread operator"
+            const screenObjects = [ ...arrows, fixation ];
+
+            // Insert objects into the DOM
+            Psych.prepare(screenObjects);
+
+            // Welcome screen
+            await Psych.welcome({
+                text: 'Welcome traveler, press spacebar to begin',
+                color: 'black'
+            });
+
+            // Countdown intro
+            await Psych.countdown();
+
+            // Loop through trials
+            for(let trialnum = 0; trialnum < trials; trialnum++) {
+
+                // Display fixation
+                let fixationStart = Psych.display([fixation]);
+
+                // Log the current trial
+                console.log(trialnum);
+
+                // Get current trial response code
+                let responseCode = trialseq.get(trialnum, settings.id.direction);
+
+                // Get the index of the arrow to display to the screen (ternary operator syntax)
+                let arrowsIndex = responseCode === settings.responseCodes.p ? 0 : 1;
+                let redArrowsIndex = arrowsIndex + 2;
+
+                // Hide fixation after 1 second
+                let fixationEnd = await fixationStart.waitUntil(1000);
+                Psych.hide([fixation]);
+                console.log(`Fixation elapsed: ${fixationEnd.elapsed}`);
+
+                // Display to screen (make visible to user)
+                let displayTime = Psych.display([arrows[arrowsIndex]]);
+
+                // Add offset function (for displaying stop signal while waiting)
+                // Notice the fact that we have to add the fat arrow syntax before our input
+                // function in order to wrap it correctly.
+                if(trialseq.get(trialnum, settings.id.is_stop)) {
+                    displayTime.addOffsetFunction(settings.time.stopSignalOffset, () => stopSignal(arrows, arrows[redArrowsIndex]));
+                }
+
+                // Wait for keypress or 1000ms
+                let response = await displayTime.waitForKeysWithTimeout(responseCodes, 1000);
+
+                // Clear screen
+                Psych.hide(arrows);
+                console.log(`Arrow elapsed: ${response.elapsed}`);
+
+                // Code accuracy
+
+                // Is a stop trial
+                if(trialseq.get(trialnum, settings.id.is_stop)) {
+
+                    // No key pressed, successful stop
+                    if(!response.keyPressed) {
+
+                        // Successful stop 4
+                        trialseq.set(trialnum, settings.id.accuracy, 4);
+
+                    } else {
+
+                        // Failed stop 5
+                        trialseq.set(trialnum, settings.id.accuracy, 5);
+
+                    }
+
+                } else {
+
+                    // Is not a stop trial
+
+                    // No key was pressed
+                    if(!response.keyPressed) {
+
+                        // Miss 4 (pressed nothing at all)
+                        trialseq.set(trialnum, settings.id.accuracy, 3);
+
+                    } else if(response.keyCode === responseCode) {
+
+                        // Successful response
+                        trialseq.set(trialnum, settings.id.accuracy, 1);
+
+                        // Record reaction time
+                        trialseq.set(trialnum, settings.id.rt, response.elapsed);
+
+                    } else if (response.keyCode !== responseCode) {
+
+                        // Error response 2 (incorrect key response but still within deadline)
+                        trialseq.set(trialnum, settings.id.accuracy, 2);
+
+                        // Record reaction time
+                        trialseq.set(trialnum, settings.id.rt, response.elapsed);
+
+                    }
+
+                }
+
+                console.log(`Accuracy: ${trialseq.get(trialnum, settings.id.accuracy)}`);
+
+                // The response containes a new PsychTime object
+                // which can be used to chain wait relative to the previous end point
+                await response.psychTime.waitUntil(1000); // 1000ms ITI
+
+                // Check for end of block to display block feedback
+                if(trialnum + 1 === trials || trialseq.get(trialnum + 1, settings.id.block) !== trialseq.get(trialnum, settings.id.block)) {
+
+                    // Get currrent block number
+                    let currentBlockNum = trialseq.get(trialnum, settings.id.block);
+
+                    // Extract the current block
+                    var block = trialseq.getRowsAndColumnsByCriteria(row => row[settings.id.block] === currentBlockNum);
+
+                    // Get go trials
+                    var go_trials = block.getRowsAndColumnsByCriteria(row => row[settings.id.is_stop] === 0);
+                    var nogo_trials = block.getRowsAndColumnsByCriteria(row => row[settings.id.is_stop] === 1);
+                    var [total_go] = go_trials.shape();
+                    var [total_stop] = nogo_trials.shape();
+
+                    // Calculate successful trials
+                    var succ = go_trials.getRowsAndColumnsByCriteria(row => row[settings.id.accuracy] === 1);
+                    var succ_pct = 0;
+                    if(succ) {
+                        let [total_succ] = succ.shape();
+                        succ_pct = total_succ / total_go * 100;
+                    }
+
+                    // Calculate rt
+                    var mean_rt = 0;
+                    if(succ) {
+                        var rts = succ.getCol(settings.id.rt);
+                        mean_rt = Matrix.mean(rts);
+                    }
+
+                    // Calculate error trials
+                    var err = go_trials.getRowsAndColumnsByCriteria(row => row[settings.id.accuracy] === 2);
+                    var err_pct = 0;
+                    if(err) {
+                        let [total_err] = err.shape();
+                        err_pct = total_err / total_go * 100;
+                    }
+
+                    // Calculate miss trials
+                    var miss = go_trials.getRowsAndColumnsByCriteria(row => row[settings.id.accuracy] === 3);
+                    var miss_pct = 0;
+                    if(miss) {
+                        let [total_miss] = miss.shape();
+                        miss_pct = total_miss / total_go * 100;
+                    }
+
+                    // Calculate successful stop trials
+                    var succ_stop = nogo_trials.getRowsAndColumnsByCriteria(row => row[settings.id.accuracy] === 4);
+                    var succ_stop_pct = 0;
+                    if(succ_stop) {
+                        var [total_succ_stop] = succ_stop.shape();
+                        succ_stop_pct = total_succ_stop / total_stop * 100;
+                    }
+
+                    // Calculate failed stop trials
+                    var fail_stop = nogo_trials.getRowsAndColumnsByCriteria(row => row[settings.id.accuracy] === 5);
+                    var fail_stop_pct = 0;
+                    if(fail_stop) {
+                        var [total_fail_stop] = fail_stop.shape();
+                        fail_stop_pct = total_fail_stop / total_stop * 100;
+                    }
+
+                    const feedback = [
+                        `Mean rt: ${mean_rt}`,
+                        `Successful go trials: ${succ_pct}%`,
+                        `Error go trials: ${err_pct}%`,
+                        `Misses: ${miss_pct}%`,
+                        `Successful stop trials: ${succ_stop_pct}%`,
+                        `Failed stop trials: ${fail_stop_pct}%`
+                    ];
+
+                    await Psych.blockFeedback(feedback);
+
+                }
+
+            }
+
+            // Log the final matrix
+            trialseq.print();
+
+            // Exit screen
+            await Psych.welcome({
+                text: 'Thank you for participating! Press spacebar to exit.',
+                color: 'black'
+            });
+
+            // Exit full screen mode
+            await Psych.exitFullScreen();
+
+            return trialseq;
+
+        }
+
+        const menuItems = [
+            {
+                header: 'Full Experiment',
+                title: 'Directions',
+                text: 'This is where you will complete the full experiment. It is called the stop signal task. You must respond to the direction of the arrows. If the arrow turns red, stop yourself from responding.',
+                start: main
+            },
+            {
+                header: 'Training',
+                title: 'Directions',
+                text: 'Usually you would adapt your code to use a different function for training, but this is just to demonstrate that you can have a second menu item for a training if you want.',
+                start: main
+            }
+        ];
+
+        const app = new Psych(menuItems);
+        app.start();
+
+    </script>
+
+</body>
+</html>

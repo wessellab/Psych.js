@@ -2,5 +2,7 @@
     "presets": [
         "es2015"
     ],
-    "plugins": ["babel-plugin-transform-class-properties"]
+    "plugins": [
+        "babel-plugin-transform-class-properties"
+    ]
 }

@@ -4,6 +4,8 @@ var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = [
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 var ApiClient = function () {
@@ -61,20 +63,56 @@ var PsychTime = function () {
         this.total_drifts = 0;
         this.last_time = null;
         this.flag = false;
+        this.offsetDelays = [];
+        this.offsetFunctions = [];
+        this.offsetFunctionsFlags = [];
     }
 
     _createClass(PsychTime, [{
+        key: 'checkOffsetFunctions',
+        value: function checkOffsetFunctions(elapsed) {
+
+            var availableFunctionsIndicies = [];
+            for (var i = 0; i < this.offsetDelays.length; i++) {
+                if (elapsed >= this.offsetDelays[i] && this.offsetFunctionsFlags[i]) {
+                    availableFunctionsIndicies.push(i);
+                    this.offsetFunctionsFlags[i] = false;
+                }
+            }
+            return availableFunctionsIndicies;
+        }
+    }, {
         key: 'waitUntil',
         value: function waitUntil(time) {
             var _this = this;
 
             return new Promise(function (resolve) {
                 var i = setInterval(function () {
+
+                    // Get metrics
                     var now = performance.now();
                     var e = _this.elapsed();
+
+                    // Check for offset functions
+                    var availableFunctions = _this.checkOffsetFunctions(e);
+                    if (availableFunctions.length > 0) {
+                        availableFunctions.forEach(function (fnIdx) {
+                            _this.offsetFunctions[fnIdx]();
+                        });
+                    }
+
+                    // Main loop check
                     if (_this.flag || _this.isReady(time, e) && Math.abs(time - e) < Math.abs(time - e - _this.drift)) {
                         clearInterval(i);
-                        resolve();
+                        resolve({
+                            startTime: _this.timestamp,
+                            endTime: now,
+                            keyCode: null,
+                            keyPressed: false,
+                            elapsed: e,
+                            psychTime: new PsychTime()
+                        });
+                        return;
                     } else {
                         if (_this.isReady(time, e)) {
                             _this.flag = true;
@@ -106,17 +144,20 @@ var PsychTime = function () {
 
             return new Promise(function (resolve) {
 
-                $(document).bind('keydown', function (e) {
+                document.addEventListener('keydown', function (e) {
+
                     if (e.keyCode === keyCode) {
                         var endTime = performance.now();
                         resolve({
                             startTime: _this2.timestamp,
                             endTime: endTime,
                             elapsed: _this2.elapsed(),
-                            keyCode: e.keyCode
+                            keyCode: e.keyCode,
+                            keyPressed: true,
+                            psychTime: new PsychTime()
                         });
                     }
-                });
+                }, { once: true });
             });
         }
     }, {
@@ -129,18 +170,67 @@ var PsychTime = function () {
 
             return new Promise(function (resolve) {
 
-                $(document).bind('keydown', function (e) {
+                document.addEventListener('keydown', function (e) {
+
                     if (anyKeysValid(e.keyCode, keyCodes)) {
                         var endTime = performance.now();
                         resolve({
                             startTime: _this3.timestamp,
                             endTime: endTime,
                             elapsed: _this3.elapsed(),
-                            keyCode: e.keyCode
+                            keyCode: e.keyCode,
+                            keyPressed: true,
+                            psychTime: new PsychTime()
                         });
+                        return;
                     }
+                }, { once: true });
+            });
+        }
+    }, {
+        key: 'waitForKeyWithTimeout',
+        value: function waitForKeyWithTimeout() {
+            var _this4 = this;
+
+            var keyCode = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 32;
+            var timeout = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 1000;
+
+
+            return new Promise(function (resolve) {
+
+                Promise.any([_this4.waitForKey(keyCode), _this4.waitUntil(timeout)]).then(function (res) {
+                    _this4.offsetDelays = [];
+                    _this4.offsetFunctions = [];
+                    _this4.offsetFunctionsFlags = [];
+                    resolve(res);
                 });
             });
+        }
+    }, {
+        key: 'waitForKeysWithTimeout',
+        value: function waitForKeysWithTimeout() {
+            var _this5 = this;
+
+            var keyCodes = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : [32];
+            var timeout = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 1000;
+
+
+            return new Promise(function (resolve) {
+
+                Promise.any([_this5.waitForKeys(keyCodes), _this5.waitUntil(timeout)]).then(function (res) {
+                    _this5.offsetDelays = [];
+                    _this5.offsetFunctions = [];
+                    _this5.offsetFunctionsFlags = [];
+                    resolve(res);
+                });
+            });
+        }
+    }, {
+        key: 'addOffsetFunction',
+        value: function addOffsetFunction(delay, fn) {
+            this.offsetDelays.push(delay);
+            this.offsetFunctions.push(fn);
+            this.offsetFunctionsFlags.push(true);
         }
     }, {
         key: 'calcDrift',
@@ -158,22 +248,173 @@ var PsychTime = function () {
 }();
 
 var Psych = function () {
-    function Psych() {
+    function Psych(menuItems) {
         _classCallCheck(this, Psych);
+
+        this.menuItems = menuItems;
     }
 
-    _createClass(Psych, null, [{
+    // Init with settings
+
+
+    _createClass(Psych, [{
+        key: 'start',
+        value: function start() {
+            var _this6 = this;
+
+            Psych.demographics().then(function (demographics) {
+                _this6.demographics = demographics;
+                _this6.menu();
+            });
+        }
+
+        // Get menu html
+
+    }, {
+        key: 'menu',
+        value: function menu() {
+
+            // Clear the DOM
+            Psych.clear();
+
+            // Get the root node
+            var body = document.getElementById('root');
+
+            // Create container element
+            var container = document.createElement('div');
+            container.className = 'container mt-5';
+            container.id = 'menu-container';
+
+            // Insert menu items
+            var _iteratorNormalCompletion = true;
+            var _didIteratorError = false;
+            var _iteratorError = undefined;
+
+            try {
+                for (var _iterator = this.menuItems[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                    var item = _step.value;
+
+
+                    var i = this.createMenuItem(item);
+                    container.appendChild(i);
+                }
+            } catch (err) {
+                _didIteratorError = true;
+                _iteratorError = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion && _iterator.return) {
+                        _iterator.return();
+                    }
+                } finally {
+                    if (_didIteratorError) {
+                        throw _iteratorError;
+                    }
+                }
+            }
+
+            body.appendChild(container);
+
+            // Place modal into the DOM
+            Psych.insertModal();
+        }
+
+        // Create element
+
+    }, {
+        key: 'createMenuItem',
+
+
+        // Create a menu item
+        value: function createMenuItem(item) {
+            var _this7 = this;
+
+            // Container
+            var container = document.createElement('div');
+            container.className = 'card mt-5 mb-5';
+            container.id = 'card';
+
+            // Header
+            var header = document.createElement('h5');
+            header.className = 'card-header';
+            header.id = 'card-header';
+            header.innerText = item.header;
+
+            // Card body
+            var cardBody = document.createElement('div');
+            cardBody.className = 'card-body';
+
+            // Card title
+            var cardTitle = document.createElement('h5');
+            cardTitle.className = 'card-title';
+            cardTitle.id = 'card-title';
+            cardTitle.innerText = item.title;
+
+            // Card text
+            var cardText = document.createElement('p');
+            cardText.className = 'card-text';
+            cardText.id = 'card-text';
+            cardText.innerText = item.text;
+
+            // Card button
+            var cardButton = document.createElement('button');
+            cardButton.className = 'btn btn-primary';
+            cardButton.id = 'go-somewhere';
+            cardButton.innerText = 'Start';
+
+            $(cardButton).on('click', function (e) {
+                e.preventDefault(); // Prevent default
+
+                // Show modal
+                $('#exampleModal').modal('show');
+
+                // Clicked start button
+                $('#start-btn').on('click', function (e) {
+                    e.preventDefault();
+                    $('#exampleModal').modal('hide');
+
+                    // Clear screen
+                    Psych.clear();
+
+                    // Run function
+                    item.start(_this7.demographics).then(function () {
+                        console.log('Going to main menu');
+
+                        // Go back to main menu
+                        _this7.menu();
+                    }).catch(function (err) {
+                        console.log(err);
+                    });
+                });
+
+                // Button to cancel start
+                $('#cancel-btn').on('click', function (e) {
+                    $('#start-btn').off('click');
+                    $('#exampleModal').modal('hide');
+                });
+            });
+
+            // Put it all together
+            cardBody.appendChild(cardTitle);
+            cardBody.appendChild(cardText);
+            cardBody.appendChild(cardButton);
+            container.appendChild(header);
+            container.appendChild(cardBody);
+
+            return container;
+        }
+
+        // Start everything with the demographic form
+
+    }], [{
         key: 'init',
-
-
-        // Init with settings
         value: function init() {
             var settings = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
 
             var _settings = Object.assign({
-                backgroundColor: 'black',
-                textColor: 'white'
+                backgroundColor: 'white',
+                textColor: 'black'
             }, settings);
 
             // Display settings
@@ -188,9 +429,22 @@ var Psych = function () {
             body.style.overflow = 'hidden';
             body.style.backgroundColor = _settings.backgroundColor;
         }
+    }, {
+        key: 'toElement',
+        value: function toElement(html) {
+            return new DOMParser().parseFromString(html, 'text/html').body.childNodes[0];
+        }
 
-        // Start everything with the demographic form
+        // Insert modal into the DOM
 
+    }, {
+        key: 'insertModal',
+        value: function insertModal() {
+
+            var str = '\n            <!-- Modal -->\n            <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">\n                <div class="modal-dialog" role="document">\n                <div class="modal-content">\n                    <div class="modal-header">\n                    <h5 class="modal-title" id="exampleModalLabel">Read Carefully!</h5>\n                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">\n                        <span aria-hidden="true">&times;</span>\n                    </button>\n                    </div>\n                    <div class="modal-body">\n                        <p>We are about to begin the experiment.</p>\n                        <p>The experiment will enter full screen mode. Do not, at any time, exit full screen mode, until the experiment is complete.</p>\n                        <p>If you do not want to start yet, click "Cancel"</p>\n                        <p>If you are ready, click "Begin"</p>\n                    </div>\n                    <div class="modal-footer">\n                        <button type="button" class="btn btn-secondary" data-dismiss="modal" id=\'cancel-btn\'>Cancel</button>\n                        <button type="button" class="btn btn-primary" id=\'start-btn\'>Begin</button>\n                    </div>\n                </div>\n                </div>\n            </div>\n        ';
+            var ele = Psych.toElement(str);
+            document.getElementById('root').appendChild(ele);
+        }
     }, {
         key: 'demographics',
         value: function demographics() {
@@ -202,20 +456,10 @@ var Psych = function () {
                     // Insert the HTML
                     document.getElementById('root').innerHTML = data;
 
-                    // Button to cancel start
-                    $('#cancel-btn').on('click', function (e) {
-                        e.preventDefault();
-                        $('#exampleModal').modal('hide');
-                    });
-
-                    // Button to open warning modal before experiment begins
+                    // Resolves promise, enters full screen
                     $('#form-submit').on('click', function (e) {
                         e.preventDefault();
-                        $('#exampleModal').modal('show');
-                    });
 
-                    // Resolves promise, enters full screen
-                    $('#start-btn').on('click', function () {
                         var country = $('#country').val();
                         var gender = $('input[name=gender]:checked').val();
                         var ethnicity = $('input[name=ethnicity]:checked').val();
@@ -247,7 +491,6 @@ var Psych = function () {
 
             return new Promise(function (resolve) {
 
-                Psych.clear();
                 var body = document.getElementById('root');
 
                 var div = Psych.fullScreenContainer();
@@ -267,15 +510,19 @@ var Psych = function () {
                 });
 
                 // Further instructions at the bottom
-                var footer = Psych.text({ text: 'Press the space bar to continue...', tag: 'h2' });
+                var footer = Psych.text({ text: 'Wait 3 seconds then press the space bar to continue...', tag: 'h2' });
                 div.appendChild(footer);
 
                 body.appendChild(div);
 
-                $(document).bind('keypress', function (e) {
-                    Psych.clear();
-                    if (e.keyCode === 32) resolve();
-                });
+                setTimeout(function () {
+                    document.addEventListener('keydown', function (e) {
+                        if (e.keyCode === 32) {
+                            body.removeChild(div);
+                            resolve();
+                        }
+                    }, { once: true });
+                }, 3000);
             });
         }
 
@@ -283,41 +530,37 @@ var Psych = function () {
 
     }, {
         key: 'fixation',
-        value: function fixation(duration) {
+        value: function fixation() {
+            var color = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'black';
             var lineWidth = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : '3px';
             var size = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : '6vw';
 
+            var _Psych$dims = Psych.dims(),
+                width = _Psych$dims.width,
+                height = _Psych$dims.height;
 
-            return new Promise(function (resolve) {
-                var _Psych$dims = Psych.dims(),
-                    width = _Psych$dims.width,
-                    height = _Psych$dims.height;
+            var div = Psych.fullScreenContainer('transparent');
 
-                var v = Psych.div({
-                    backgroundColor: 'black',
-                    height: size,
-                    width: lineWidth,
-                    locationX: width / 2,
-                    locationY: height / 2
-                });
-
-                var h = Psych.div({
-                    backgroundColor: 'black',
-                    height: lineWidth,
-                    width: size,
-                    locationX: width / 2,
-                    locationY: height / 2
-                });
-
-                var body = document.getElementById('root');
-                body.appendChild(v);
-                body.appendChild(h);
-
-                setTimeout(function () {
-                    Psych.clear();
-                    resolve();
-                }, duration);
+            var v = Psych.div({
+                backgroundColor: color,
+                height: size,
+                width: lineWidth,
+                locationX: width / 2,
+                locationY: height / 2
             });
+
+            var h = Psych.div({
+                backgroundColor: color,
+                height: lineWidth,
+                width: size,
+                locationX: width / 2,
+                locationY: height / 2
+            });
+
+            div.appendChild(v);
+            div.appendChild(h);
+
+            return div;
         }
 
         // Present a welcome screen
@@ -325,24 +568,35 @@ var Psych = function () {
     }, {
         key: 'welcome',
         value: function welcome() {
-            var t = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'Welcome! Press the space bar to begin.';
+            var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
 
+
+            var _options = Object.assign({
+                text: 'Welcome! Press the space bar to begin.',
+                color: Psych.textColor,
+                fontSize: '3em',
+                fontWeight: 'bolder'
+            }, options);
 
             return new Promise(function (resolve) {
+
                 // Get body
                 var body = document.getElementById('root');
 
-                Psych.clear();
                 var div = Psych.fullScreenContainer();
-                var text = Psych.text({ text: t });
+                var text = Psych.text(_options);
 
                 div.appendChild(text); // put in text
                 body.appendChild(div); // add to DOM
 
-                $(document).bind('keypress', function (e) {
-                    Psych.clear();
-                    if (e.keyCode === 32) resolve();
-                });
+                setTimeout(function () {
+                    document.addEventListener('keydown', function (e) {
+                        if (e.keyCode === 32) {
+                            body.removeChild(div);
+                            resolve();
+                        }
+                    }, { once: true });
+                }, 3000);
             });
         }
 
@@ -356,9 +610,10 @@ var Psych = function () {
 
             return new Promise(function (resolve) {
 
-                $(document).bind('keydown', function (e) {
+                document.addEventListener('keydown', function (e) {
+
                     if (e.keyCode === keyCode) resolve();
-                });
+                }, { once: true });
             });
         }
 
@@ -372,9 +627,10 @@ var Psych = function () {
 
             return new Promise(function (resolve) {
 
-                $(document).bind('keydown', function (e) {
+                document.addEventListener('keydown', function (e) {
+
                     if (anyKeysValid(e.keyCode, keyCodes)) resolve(e.keyCode);
-                });
+                }, { once: true });
             });
         }
 
@@ -383,14 +639,20 @@ var Psych = function () {
     }, {
         key: 'countdown',
         value: function countdown() {
-            var val = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 3;
+            var textColor = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : Psych.textColor;
+            var backgroundColor = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : Psych.backgroundColor;
+            var val = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : 3;
 
 
             return new Promise(function (resolve) {
 
-                Psych.clear();
-                var div = Psych.fullScreenContainer();
-                var text = Psych.text('Starting in ' + val + '...');
+                var div = Psych.fullScreenContainer(backgroundColor);
+                var text = Psych.text({
+                    text: 'Starting in ' + val + '...',
+                    color: textColor,
+                    fontSize: '3em',
+                    fontWeight: 'bolder'
+                });
                 div.appendChild(text);
                 document.getElementById('root').appendChild(div);
 
@@ -398,7 +660,7 @@ var Psych = function () {
 
                     val -= 1;
                     if (val === 0) {
-                        Psych.clear();
+                        document.getElementById('root').removeChild(div);
                         clearInterval(i);
                         resolve();
                     } else {
@@ -414,6 +676,7 @@ var Psych = function () {
         key: 'clear',
         value: function clear() {
             document.getElementById('root').innerHTML = '';
+            return new PsychTime();
         }
 
         // Text block
@@ -451,8 +714,10 @@ var Psych = function () {
     }, {
         key: 'fullScreenContainer',
         value: function fullScreenContainer() {
+            var bgColor = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : Psych.backgroundColor;
+
             var div = document.createElement('div');
-            div.style.background = Psych.backgroundColor;
+            div.style.background = bgColor;
             div.style.zIndex = '999999999';
             div.style.height = '100vh';
             div.style.width = '100vw';
@@ -546,7 +811,8 @@ var Psych = function () {
                 fillStyle: 'black',
                 strokeStyle: 'black',
                 top: dims.height / 2,
-                left: dims.width / 2
+                left: dims.width / 2,
+                rotate: 0
             }, options);
 
             return _options;
@@ -573,6 +839,9 @@ var Psych = function () {
 
             // Translate
             ctx.translate(options.left, options.top);
+
+            // Rotation around center axis
+            ctx.rotate(options.rotate * Math.PI / 180);
 
             // the outline
             ctx.lineWidth = options.lineWidth;
@@ -605,7 +874,7 @@ var Psych = function () {
 
 
             var size = _options.size / 100; // scale down
-            var handleLength = 80 * size;
+            var handleLength = 50 * size;
             var handleHeight = 13 * size;
             var headLength = 50 * size;
             var headHeight = 40 * size;
@@ -756,45 +1025,18 @@ var Psych = function () {
     }, {
         key: 'update',
         value: function update(item, textOptions, divOptions) {
-            var _iteratorNormalCompletion = true;
-            var _didIteratorError = false;
-            var _iteratorError = undefined;
-
-            try {
-
-                for (var _iterator = Object.entries(textOptions)[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                    var _step$value = _slicedToArray(_step.value, 2),
-                        key = _step$value[0],
-                        value = _step$value[1];
-
-                    item.firstChild.style[key] = value;
-                }
-            } catch (err) {
-                _didIteratorError = true;
-                _iteratorError = err;
-            } finally {
-                try {
-                    if (!_iteratorNormalCompletion && _iterator.return) {
-                        _iterator.return();
-                    }
-                } finally {
-                    if (_didIteratorError) {
-                        throw _iteratorError;
-                    }
-                }
-            }
-
             var _iteratorNormalCompletion2 = true;
             var _didIteratorError2 = false;
             var _iteratorError2 = undefined;
 
             try {
-                for (var _iterator2 = Object.entries(divOptions)[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+
+                for (var _iterator2 = Object.entries(textOptions)[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
                     var _step2$value = _slicedToArray(_step2.value, 2),
                         key = _step2$value[0],
                         value = _step2$value[1];
 
-                    item.style[key] = value;
+                    item.firstChild.style[key] = value;
                 }
             } catch (err) {
                 _didIteratorError2 = true;
@@ -807,6 +1049,33 @@ var Psych = function () {
                 } finally {
                     if (_didIteratorError2) {
                         throw _iteratorError2;
+                    }
+                }
+            }
+
+            var _iteratorNormalCompletion3 = true;
+            var _didIteratorError3 = false;
+            var _iteratorError3 = undefined;
+
+            try {
+                for (var _iterator3 = Object.entries(divOptions)[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+                    var _step3$value = _slicedToArray(_step3.value, 2),
+                        key = _step3$value[0],
+                        value = _step3$value[1];
+
+                    item.style[key] = value;
+                }
+            } catch (err) {
+                _didIteratorError3 = true;
+                _iteratorError3 = err;
+            } finally {
+                try {
+                    if (!_iteratorNormalCompletion3 && _iterator3.return) {
+                        _iterator3.return();
+                    }
+                } finally {
+                    if (_didIteratorError3) {
+                        throw _iteratorError3;
                     }
                 }
             }
@@ -952,10 +1221,10 @@ var Psych = function () {
 
                 // Resolve when it finishes
                 var i = setInterval(function () {
-                    if (Psych.browser === 'Firefox' && document.mozFullScreen) {
+                    if (Psych.browser === 'Firefox' && !document.mozFullScreen) {
                         clearInterval(i);
                         resolve();
-                    } else if (document.webkitIsFullScreen) {
+                    } else if (!document.webkitIsFullScreen) {
                         clearInterval(i);
                         resolve();
                     }
@@ -977,7 +1246,7 @@ var Matrix = function () {
 
         _classCallCheck(this, Matrix);
 
-        this.values = Matrix.full(h, w, v);
+        this.values = Matrix.full2d(h, w, v);
     }
 
     // Get a single cell
@@ -1015,6 +1284,21 @@ var Matrix = function () {
             }
         }
 
+        // Set a row with an existing array
+
+    }, {
+        key: 'setRowFromArray',
+        value: function setRowFromArray(row, array) {
+
+            // Check to make sure dimensions are equal
+            if (this.values[row].length !== array.length) {
+                throw new Error('Row assignment cannot be done because dimensions are not equal.');
+            }
+
+            // Set values
+            this.values[row] = array;
+        }
+
         // Set a column with a specific value
 
     }, {
@@ -1026,6 +1310,23 @@ var Matrix = function () {
                 for (var i = 0; i < this.values.length; i++) {
                     this.values[i][col] = val;
                 }
+            }
+        }
+
+        // Set a column from an existing array
+
+    }, {
+        key: 'setColFromArray',
+        value: function setColFromArray(col, array) {
+
+            // Check to make sure dimensions are equal
+            if (this.values.length !== array.length) {
+                throw new Error('Column assignment cannot be done because dimensions are not equal.');
+            }
+
+            // Set values
+            for (var i = 0; i < array.length; i++) {
+                this.set(i, col, array[i]);
             }
         }
 
@@ -1045,6 +1346,30 @@ var Matrix = function () {
             return this.values.map(function (row) {
                 return row[col];
             });
+        }
+
+        // Get column by criteria
+
+    }, {
+        key: 'getColByCriteria',
+        value: function getColByCriteria(col, fn) {
+
+            return this.getCol(col).filter(fn);
+        }
+
+        // Get all rows and columns by column criteria
+
+    }, {
+        key: 'getRowsAndColumnsByCriteria',
+        value: function getRowsAndColumnsByCriteria(fn) {
+
+            var rows = [];
+            for (var i = 0; i < this.values.length; i++) {
+                if (fn(this.getRow(i))) {
+                    rows.push(this.values[i]);
+                }
+            }
+            return rows.length > 0 ? Matrix.initFromMatrix(rows) : null;
         }
 
         // Get multiple rows
@@ -1077,11 +1402,41 @@ var Matrix = function () {
             });
         }
 
-        // Create a 2d matrix of zeros
+        // Create an array of zeros
 
+    }, {
+        key: 'print',
+
+
+        // Print the matrix as a table to the console
+        value: function print() {
+            console.table(this.values);
+        }
     }], [{
         key: 'zeros',
-        value: function zeros(height, width) {
+        value: function zeros(len) {
+            var a = new Array(len);
+            for (var i = 0; i < len; ++i) {
+                a[i] = 0;
+            }return a;
+        }
+
+        // Create an array filled with a particular value
+
+    }, {
+        key: 'full',
+        value: function full(len, val) {
+            var a = new Array(len);
+            for (var i = 0; i < len; ++i) {
+                a[i] = val;
+            }return a;
+        }
+
+        // Create a 2d matrix of zeros
+
+    }, {
+        key: 'zeros2d',
+        value: function zeros2d(height, width) {
 
             var rows = [];
             for (var i = 0; i < height; i++) {
@@ -1104,8 +1459,8 @@ var Matrix = function () {
         // Create a 2d matrix with a specified value
 
     }, {
-        key: 'full',
-        value: function full(height, width, val) {
+        key: 'full2d',
+        value: function full2d(height, width, val) {
 
             var rows = [];
             for (var i = 0; i < height; i++) {
@@ -1123,6 +1478,103 @@ var Matrix = function () {
             }
 
             return rows;
+        }
+
+        // Concat multiple Matrix instances together
+
+    }, {
+        key: 'append',
+        value: function append(matricies) {
+
+            // If we only have 1 matrix then just return that
+            if (matricies.length === 1) {
+                return matricies[0];
+            }
+
+            // Validate array of inputs
+            matricies.forEach(function (matrix) {
+
+                // Check to make sure all array items are of the Matrix class
+                if (matrix instanceof Matrix === false) {
+                    throw new Error('All array items must be an instance of Matrix class.');
+                }
+            });
+
+            // Validate that all matricies have the same number of columns
+
+            var _matricies$0$shape = matricies[0].shape(),
+                _matricies$0$shape2 = _slicedToArray(_matricies$0$shape, 2),
+                columns = _matricies$0$shape2[1];
+
+            matricies.forEach(function (matrix) {
+                var _matrix$shape = matrix.shape(),
+                    _matrix$shape2 = _slicedToArray(_matrix$shape, 2),
+                    cols = _matrix$shape2[1];
+
+                if (columns !== cols) {
+                    throw new Error('Matrix columns are not equal.');
+                }
+            });
+
+            // Merge raw values
+            var rawArray = [];
+            matricies.forEach(function (_m) {
+                rawArray = [].concat(_toConsumableArray(rawArray), _toConsumableArray(_m.values));
+            });
+
+            return Matrix.initFromMatrix(rawArray);
+        }
+
+        // Initialize an instance of this class from an existing matrix
+
+    }, {
+        key: 'initFromMatrix',
+        value: function initFromMatrix(matrix) {
+
+            // Validate that it is a matrix
+            if (matrix instanceof Array === false) {
+                throw new Error('Cannot build from non-array type.');
+            }
+
+            // Validate that we have at least 1 row and at least 1 column
+            if (matrix.length === 0 || matrix[0].length === 0) {
+                throw new Error('Matrix must have at least 1 row and 1 column');
+            }
+
+            var rows = matrix.length;
+            var columns = matrix[0].length;
+
+            // Build new matrix
+            var m = new Matrix(rows, columns);
+            for (var r = 0; r < rows; r++) {
+                // Validate that column dims are always equal
+                if (matrix[r].length !== columns) {
+                    throw new Error('Matrix dimensions are not equivalent.');
+                }
+                m.setRowFromArray(r, matrix[r]);
+            }
+
+            return m;
+        }
+
+        // Create a range of numbers as an array by increment
+
+    }, {
+        key: 'range',
+        value: function range(from, to, step) {
+            return [].concat(_toConsumableArray(Array(Math.floor((to - from) / step) + 1))).map(function (_, i) {
+                return from + i * step;
+            });
+        }
+
+        // Calculate mean of an array
+
+    }, {
+        key: 'mean',
+        value: function mean(arr) {
+            return arr.reduce(function (acc, val) {
+                return acc + val;
+            }, 0) / arr.length;
         }
     }]);
 
