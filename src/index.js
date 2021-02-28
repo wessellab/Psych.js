@@ -710,7 +710,7 @@ class Psych {
         div.style.position = 'absolute';
         div.style.justifyContent = 'center';
         div.style.alignItems = 'center';
-        div.style.display = 'hidden';
+        div.style.display = 'none';
         if(_options.moveFromCenter) div.style.transform = 'translate(-50%, -50%)';
         return div;
     }
