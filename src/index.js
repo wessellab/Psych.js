@@ -510,7 +510,8 @@ class Psych {
             height: size,
             width: lineWidth,
             locationX: width / 2,
-            locationY: height / 2
+            locationY: height / 2,
+            display: 'inline-block'
         })
 
         var h = Psych.div({
@@ -518,7 +519,8 @@ class Psych {
             height: lineWidth,
             width: size,
             locationX: width / 2,
-            locationY: height / 2
+            locationY: height / 2,
+            display: 'inline-block'
         })
 
         div.appendChild(v);
@@ -696,6 +698,7 @@ class Psych {
             height: '5px',
             width: '5px',
             padding: '0px',
+            display: 'none',
             moveFromCenter: true
         }, options);
 
@@ -710,7 +713,7 @@ class Psych {
         div.style.position = 'absolute';
         div.style.justifyContent = 'center';
         div.style.alignItems = 'center';
-        div.style.display = 'none';
+        div.style.display = _options.display;
         if(_options.moveFromCenter) div.style.transform = 'translate(-50%, -50%)';
         return div;
     }
