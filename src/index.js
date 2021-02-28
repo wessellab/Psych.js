@@ -672,6 +672,7 @@ class Psych {
         div.style.display = 'flex';
         div.style.justifyContent = 'center';
         div.style.alignItems = 'center';
+        div.style.display = 'none';
         return div
     }
 
