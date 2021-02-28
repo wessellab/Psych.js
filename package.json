@@ -10,6 +10,7 @@
     "start-prod": "yarn && yarn build && pm2 restart 'Psych.js'"
   },
   "dependencies": {
+    "aws-sdk": "^2.806.0",
     "body-parser": "^1.19.0",
     "cors": "^2.8.5",
     "dotenv": "^8.2.0",
