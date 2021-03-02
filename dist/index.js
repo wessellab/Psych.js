@@ -586,6 +586,7 @@ var Psych = function () {
                 var body = document.getElementById('root');
 
                 var div = Psych.fullScreenContainer();
+                div.style.display = 'flex';
                 var text = Psych.text(_options);
 
                 div.appendChild(text); // put in text
@@ -649,6 +650,7 @@ var Psych = function () {
             return new Promise(function (resolve) {
 
                 var div = Psych.fullScreenContainer(backgroundColor);
+                div.style.display = 'flex';
                 var text = Psych.text({
                     text: 'Starting in ' + val + '...',
                     color: textColor,
@@ -1579,6 +1581,13 @@ var Matrix = function () {
             return arr.reduce(function (acc, val) {
                 return acc + val;
             }, 0) / arr.length;
+        }
+    }, {
+        key: 'sum',
+        value: function sum(arr) {
+            return arr.reduce(function (acc, val) {
+                return acc + val;
+            }, 0);
         }
     }]);
 

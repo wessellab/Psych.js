@@ -546,6 +546,7 @@ class Psych {
             const body = document.getElementById('root');
 
             var div = Psych.fullScreenContainer();
+            div.style.display = 'flex';
             var text = Psych.text(_options);
 
             div.appendChild(text); // put in text
@@ -600,6 +601,7 @@ class Psych {
         return new Promise((resolve) => {
 
             var div = Psych.fullScreenContainer(backgroundColor);
+            div.style.display = 'flex';
             var text = Psych.text({
                 text: `Starting in ${val}...`,
                 color: textColor,
@@ -1312,6 +1314,10 @@ class Matrix {
     // Calculate mean of an array
     static mean(arr) {
         return arr.reduce((acc, val) => acc + val, 0) / arr.length;
+    }
+
+    static sum(arr) {
+        return arr.reduce((acc, val) => acc + val, 0)
     }
 
     // Print the matrix as a table to the console
