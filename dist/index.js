@@ -496,6 +496,7 @@ var Psych = function () {
                 var div = Psych.fullScreenContainer();
 
                 // Modify some settings in the div
+                div.style.display = 'flex';
                 div.style.flexDirection = 'column';
                 div.style.justifyContent = 'space-evenly';
 
