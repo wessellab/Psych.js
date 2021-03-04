@@ -638,10 +638,18 @@ var Psych = function () {
 
             return new Promise(function (resolve) {
 
-                document.addEventListener('keydown', function (e) {
+                var addListener = function addListener() {
+                    document.addEventListener('keydown', function (e) {
 
-                    if (anyKeysValid(e.keyCode, keyCodes)) resolve(e.keyCode);
-                }, { once: true });
+                        if (anyKeysValid(e.keyCode, keyCodes)) {
+                            resolve(e.keyCode);
+                        } else {
+                            addListener();
+                        }
+                    }, { once: true });
+                };
+
+                addListener();
             });
         }
 
@@ -1269,7 +1277,22 @@ var Matrix = function () {
     _createClass(Matrix, [{
         key: 'get',
         value: function get(row, col) {
-            return this.values[row][col];
+            if (row < this.values.length) {
+                if (col < this.values[0].length) {
+                    return this.values[row][col];
+                } else {
+                    console.log('Got this col error');
+                    console.log(this.values);
+                    console.log(row);
+                    console.log(col);
+                }
+            } else {
+                console.log('Got this row error');
+                console.log(this.values);
+                console.log(row);
+                console.log(col);
+            }
+            // return this.values[row][col];
         }
 
         // Set a single cell

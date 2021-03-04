@@ -1088,7 +1088,22 @@ class Matrix {
 
     // Get a single cell
     get(row, col) {
-        return this.values[row][col];
+        if(row < this.values.length) {
+            if(col < this.values[0].length) {
+                return this.values[row][col]
+            } else {
+                console.log('Got this col error');
+                console.log(this.values);
+                console.log(row);
+                console.log(col);
+            }
+        } else {
+            console.log('Got this row error');
+            console.log(this.values);
+            console.log(row);
+            console.log(col);
+        }
+        // return this.values[row][col];
     }
 
     // Set a single cell
