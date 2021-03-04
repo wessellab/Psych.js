@@ -592,11 +592,19 @@ class Psych {
 
         return new Promise((resolve) => {
 
-            document.addEventListener('keydown', e => {
+            const addListener = () => {
+                document.addEventListener('keydown', e => {
 
-                if(anyKeysValid(e.keyCode, keyCodes)) resolve(e.keyCode);
+                    if(anyKeysValid(e.keyCode, keyCodes)) {
+                        resolve(e.keyCode);
+                    } else {
+                        addListener();
+                    }
+    
+                }, { once: true });
+            }
 
-            }, { once: true });
+            addListener();
 
         })
 
