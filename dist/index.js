@@ -1277,22 +1277,7 @@ var Matrix = function () {
     _createClass(Matrix, [{
         key: 'get',
         value: function get(row, col) {
-            if (row < this.values.length) {
-                if (col < this.values[0].length) {
-                    return this.values[row][col];
-                } else {
-                    console.log('Got this col error');
-                    console.log(this.values);
-                    console.log(row);
-                    console.log(col);
-                }
-            } else {
-                console.log('Got this row error');
-                console.log(this.values);
-                console.log(row);
-                console.log(col);
-            }
-            // return this.values[row][col];
+            return this.values[row][col];
         }
 
         // Set a single cell
