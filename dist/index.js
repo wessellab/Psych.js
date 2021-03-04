@@ -614,10 +614,17 @@ var Psych = function () {
 
             return new Promise(function (resolve) {
 
-                document.addEventListener('keydown', function (e) {
+                var addListener = function addListener() {
+                    document.addEventListener('keydown', function (e) {
+                        if (e.keyCode === keyCode) {
+                            resolve();
+                        } else {
+                            addListener();
+                        }
+                    }, { once: true });
+                };
 
-                    if (e.keyCode === keyCode) resolve();
-                }, { once: true });
+                addListener();
             });
         }
 
