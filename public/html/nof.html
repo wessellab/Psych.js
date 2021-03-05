@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Experiment Title -->
+    <title>My Awesome Experiment</title>
+
+    <!-- Psych.js Imports -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+    <script src='https://psychjs.alecneuro.com/index.min.js'></script>
+    <!-- Psych.js Imports End -->
+
+</head>
+<body id='root'>
+
+    <script>
+
+        // Create settings
+        function Settings() {
+
+            return {
+                id: {
+                    trialnum: 0,
+                    blocknum: 1,
+                    cong: 2,
+                    target: 3,
+                    rsi: 4,
+                    oddball: 5,
+                    novelty: 6,
+                    rt: 7,
+                    acc: 8,
+                    feedback_rt: 9,
+                    cols: function() {
+                        // Function gets the number of columns in the id field
+                        return Object.keys(this).length - 1
+                    }
+                },
+                durations: {
+                    rsi: {
+                        short: 350,
+                        medium: 1700,
+                        long: 3000
+                    },
+                    deadline: 500,
+                    space: 1000,
+                    feedback_standard: 500,
+                    feedback_oddball: 2000,
+                    feedback_oddball_comment: 500,
+                    feedback_oddball_comment_buffer: 500,
+                    novelty: 1000,
+                    novelty_buffer: 500
+                },
+                acc: {
+                    miss: 999,
+                    correct: 1,
+                    error: 2
+                },
+                keys: {
+                    left: 81,
+                    right: 80
+                },
+                general: {
+                    blocks: 1,
+                    trials: 36,
+                    congruent: 0.5,
+                    target: 0.5,
+                    rsi: 1 / 3,
+                    maxLength: 72 * 3
+                },
+                colors: {
+                    bgColor: '#ccc'
+                },
+                targets: {
+                    left: '<',
+                    right: '>'
+                },
+                responseCodes: {
+                    q: 81,
+                    p: 80,
+                    spacebar: 32
+                }
+            }
+
+        }
+
+        function insertTrialNums(trialseq, settings) {
+            for(let i = 0; i < trialseq.shape()[0]; i++) trialseq.set(i, settings.id.trialnum, i)
+            return trialseq
+        }
+
+        function has3inaRow(matrix, settings) {
+
+            let [rows] = matrix.shape();
+
+            for(let i = 0; i < rows; i++) {
+
+                // Don't check the first or last rows
+                if(i !== 0 && i < rows - 1) {
+
+                    let cong_values = [
+                        matrix.get(i, settings.id.cong),
+                        matrix.get(i - 1, settings.id.cong),
+                        matrix.get(i + 1, settings.id.cong)
+                    ]
+
+                    let target_values = [
+                        matrix.get(i, settings.id.target),
+                        matrix.get(i - 1, settings.id.target),
+                        matrix.get(i + 1, settings.id.target)
+                    ]
+
+                    let rsi_values = [
+                        matrix.get(i, settings.id.rsi),
+                        matrix.get(i - 1, settings.id.rsi),
+                        matrix.get(i + 1, settings.id.rsi)
+                    ]
+
+                    // Get all the novelties surrounding the current trial,
+                    // if the sum of all 3 is greater than 1 then we have 2 novelties
+                    // next to each other
+                    let novelties = [
+                        matrix.get(i, settings.id.novelty),
+                        matrix.get(i - 1, settings.id.novelty),
+                        matrix.get(i +1, settings.id.novelty)
+                    ].reduce((a, b) => a + b, 0)
+                    
+                    if(
+                        (cong_values.every((val, i, arr) => val === arr[0]) &&
+                        target_values.every((val, i, arr) => val === arr[0]) &&
+                        rsi_values.every((val, i, arr) => val === arr[0])) ||
+                        novelties > 1
+                    ) {
+                        return true
+                    }
+
+                }
+
+            }
+
+            return false
+
+        }
+
+        function oddballTooClose(matrix, settings) {
+
+            const oddballs = matrix.getRowsAndColumnsByCriteria(row => row[settings.id.oddball] === 1);
+            const distance = Math.abs(oddballs.get(0, settings.id.trialnum) - oddballs.get(1, settings.id.trialnum));
+            if(distance < 20) {
+                return true
+            } else {
+                return false
+            }
+
+        }
+
+        function oddballOrNoveltyInFirst3(matrix, settings) {
+
+            const s = Matrix.sum([
+                matrix.get(0, settings.id.oddball),
+                matrix.get(1, settings.id.oddball),
+                matrix.get(2, settings.id.oddball),
+                matrix.get(0, settings.id.novelty),
+                matrix.get(1, settings.id.novelty),
+                matrix.get(2, settings.id.novelty),
+            ])
+
+            return s > 0 ? true : false;
+
+        }
+
+        function isNotValidBlock(trialseq, settings) {
+
+            // 1. Cannot have 3 of the same trial type in a row
+            // 2. Cannot have oddballs within 20 trials of one another
+            // 3. Cannot have oddball or novelty in the first 3 trials
+            if(
+                has3inaRow(trialseq, settings) ||
+                oddballTooClose(trialseq, settings) ||
+                oddballOrNoveltyInFirst3(trialseq, settings))
+            {
+                return true
+            } else {
+                return false
+            }
+
+        }
+
+        function isValidNovelty(trialseq, trialnum, i, settings) {
+
+            // Current trial
+            const cong = trialseq.get(trialnum, settings.id.cong);
+            const nextTrialCong = trialseq.get(trialnum + 1, settings.id.cong);
+            const target = trialseq.get(trialnum, settings.id.target);
+            const rsi = trialseq.get(trialnum, settings.id.rsi);
+
+            // Search trial
+            const searchCong = trialseq.get(i, settings.id.cong);
+            const nextSearchCong = trialseq.get(i + 1, settings.id.cong);
+            const searchTarget = trialseq.get(i, settings.id.target);
+            const searchRsi = trialseq.get(i, settings.id.rsi);
+
+            const oddballSum = Matrix.sum([
+                i > 1 ? trialseq.get(i - 1, settings.id.oddball) : 0,
+                i > 2 ? trialseq.get(i - 2, settings.id.oddball) : 0,
+                i > 3 ? trialseq.get(i - 3, settings.id.oddball) : 0,
+                i > 4 ? trialseq.get(i - 4, settings.id.oddball) : 0,
+                i > 5 ? trialseq.get(i - 5, settings.id.oddball) : 0,
+                trialseq.get(i, settings.id.oddball),
+                i + 1 < trialseq.shape()[0] ? trialseq.get(i + 1, settings.id.oddball) : 0,
+                i + 2 < trialseq.shape()[0] ? trialseq.get(i + 2, settings.id.oddball) : 0,
+                i + 3 < trialseq.shape()[0] ? trialseq.get(i + 3, settings.id.oddball) : 0
+            ]);
+
+            const noveltySum = Matrix.sum([
+                i > 1 ? trialseq.get(i - 1, settings.id.novelty) : 0,
+                i > 2 ? trialseq.get(i - 2, settings.id.novelty) : 0,
+                i > 3 ? trialseq.get(i - 3, settings.id.novelty) : 0,
+                i > 4 ? trialseq.get(i - 4, settings.id.novelty) : 0,
+                i > 5 ? trialseq.get(i - 5, settings.id.novelty) : 0,
+                trialseq.get(i, settings.id.novelty),
+                i + 1 < trialseq.shape()[0] ? trialseq.get(i + 1, settings.id.novelty) : 0,
+                i + 2 < trialseq.shape()[0] ? trialseq.get(i + 2, settings.id.novelty) : 0,
+                i + 3 < trialseq.shape()[0] ? trialseq.get(i + 3, settings.id.novelty) : 0
+            ]);
+
+            if(
+                oddballSum === 0 &&
+                noveltySum === 0 &&
+                cong === searchCong &&
+                nextTrialCong === nextSearchCong &&
+                target === searchTarget &&
+                rsi === searchRsi
+            ) {
+                return true
+            } else {
+                return false
+            }
+
+        }
+
+        function appendNovelty(trialseq, trialnum, settings) {
+
+            const size = 12;
+
+            const trials = new Matrix(size, settings.id.cols());
+
+            // Set the new fields
+            const [rows] = trials.shape()
+            var rsiIndex = 0;
+            const rsis = Object.keys(settings.durations.rsi);
+            for(let i = 0; i < rows; i++) {
+                if(i % 2 === 0) {
+                    trials.set(i, settings.id.cong, 1);
+                } else {
+                    trials.set(i, settings.id.cong, 2);
+                }
+                if(i < rows / 2) {
+                    trials.set(i, settings.id.target, 1);
+                } else {
+                    trials.set(i, settings.id.target, 2);
+                }
+                trials.set(i, settings.id.rsi, settings.durations.rsi[rsis[rsiIndex]]);
+                if(rsiIndex === 2) {
+                    rsiIndex = 0;
+                } else {
+                    rsiIndex += 1;
+                }
+            }
+
+            // Now append the number of the last block
+            const blocknums = Matrix.full(rows, settings.general.blocks - 1);
+            trials.setColFromArray(settings.id.blocknum, blocknums);
+
+            const cong = trialseq.get(trialnum, settings.id.cong);
+            const nextTrialCong = trialseq.get(trialnum + 1, settings.id.cong);
+            const target = trialseq.get(trialnum, settings.id.target);
+            const rsi = trialseq.get(trialnum, settings.id.rsi);
+
+            // Insert the novelty into the temp block
+            for(let i = 0; i < trials.shape()[0]; i++) {
+
+                const searchCong = trials.get(i, settings.id.cong);
+                const searchTarget = trials.get(i, settings.id.target);
+                const searchRsi = trials.get(i, settings.id.rsi);
+
+                if(
+                    cong === searchCong &&
+                    target === searchTarget &&
+                    rsi === searchRsi
+                ) {
+                    trials.set(i, settings.id.novelty, 1);
+                    break
+                }
+
+            }
+
+            // Strategy here is to create a temporary matrix where we append
+            // the current block, check if its valid, if not then we reshuffle the
+            // block we're appending and retry.
+            trials.shuffle();
+            var block = Matrix.append([trialseq, trials]);
+            while (
+                    (
+                        trialseq.get(trialseq.shape()[0] - 1, settings.id.novelty) === 1 &&
+                        trials.get(0, settings.id.novelty) === 1
+                    ) ||
+                    isNotValidBlock(block, settings)
+                )
+            {
+                trials.shuffle();
+                block = Matrix.append([trialseq, trials]);
+            }
+
+            // Just reset trial nums
+            for(let i = 0; i < block.shape()[0]; i++) {
+                block.set(i, settings.id.trialnum, i);
+            }
+
+            return block
+
+        }
+
+        function moveOddball(trialseq, trialnum, settings) {
+
+            // Unset the current oddball
+            trialseq.set(trialnum, settings.id.oddball, 0);
+
+            if(trialnum + 3 < trialseq.shape()[0]) {
+                
+                for(let i = trialnum + 3; i < trialseq.shape()[0] - 1; i++) {
+
+                    const s = Matrix.sum([
+                        trialseq.get(i - 1, settings.id.oddball),
+                        trialseq.get(i, settings.id.oddball),
+                        i + 1 < trialseq.shape()[0] ? trialseq.get(i + 1, settings.id.oddball) : 0,
+                        trialseq.get(i - 1, settings.id.novelty),
+                        i + 1 < trialseq.shape()[0] ? trialseq.get(i + 1, settings.id.novelty) : 0,
+                        trialseq.get(i, settings.id.novelty)
+                    ])
+
+                    if(s === 0) {
+                        trialseq.set(i, settings.id.oddball, 1);
+                        console.log('Moved oddball to: ');
+                        console.log(trialseq.getRow(i));
+                    }
+
+                }
+            }
+
+        }
+
+        function insertNovelty(trialseq, trialnum, settings) {
+
+            if(trialnum + 3 < trialseq.shape()[0]) {
+
+                for(let i = trialnum + 3; i < trialseq.shape()[0] - 1; i++) {
+    
+                    if(isValidNovelty(trialseq, trialnum, i, settings)) {
+                        trialseq.set(i, settings.id.novelty, 1);
+
+                        console.log('Current Trial: ');
+                        console.log(trialseq.getRow(trialnum));
+
+                        console.log('Inserted novelty');
+                        console.log(trialseq.getRow(i));
+
+                        if(trialseq.get(i, settings.id.oddball) === 1) {
+                            trialseq = moveOddball(trialseq, i, settings)
+                        }
+                        return trialseq
+                    }
+    
+                }
+
+                // If we didn't find a place to insert it then we need to append
+                // new trials to the sequence
+                trialseq = appendNovelty(trialseq, trialnum, settings);
+                return trialseq
+
+            }
+
+        }
+
+        function Trialseq(settings) {
+
+            var trialseq = undefined;
+
+            for(let ib = 0; ib < settings.general.blocks; ib++) {
+
+                // Get the number of congruent and incongruent trials
+                let cong_trials = (settings.general.trials * settings.general.congruent / 2 / 3);
+                let incong_trials = (settings.general.trials * settings.general.congruent / 2 / 3);
+                
+                // Create blocks for congruency / target side / rsi length
+                let cong_left_short = new Matrix(cong_trials, settings.id.cols());
+                let cong_left_medium = new Matrix(cong_trials, settings.id.cols());
+                let cong_left_long = new Matrix(cong_trials, settings.id.cols());
+
+                let cong_right_short = new Matrix(cong_trials, settings.id.cols());
+                let cong_right_medium = new Matrix(cong_trials, settings.id.cols());
+                let cong_right_long = new Matrix(cong_trials, settings.id.cols());
+
+                let incong_left_short = new Matrix(incong_trials, settings.id.cols());
+                let incong_left_medium = new Matrix(incong_trials, settings.id.cols());
+                let incong_left_long = new Matrix(incong_trials, settings.id.cols());
+
+                let incong_right_short = new Matrix(incong_trials, settings.id.cols());
+                let incong_right_medium = new Matrix(incong_trials, settings.id.cols());
+                let incong_right_long = new Matrix(incong_trials, settings.id.cols());
+
+                // Set congruency
+                let cong = Matrix.full(cong_trials, 1);
+                let incong = Matrix.full(incong_trials, 2);
+
+                cong_left_short.setColFromArray(settings.id.cong, cong);
+                cong_left_medium.setColFromArray(settings.id.cong, cong);
+                cong_left_long.setColFromArray(settings.id.cong, cong);
+
+                cong_right_short.setColFromArray(settings.id.cong, cong);
+                cong_right_medium.setColFromArray(settings.id.cong, cong);
+                cong_right_long.setColFromArray(settings.id.cong, cong);
+
+                incong_left_short.setColFromArray(settings.id.cong, incong);
+                incong_left_medium.setColFromArray(settings.id.cong, incong);
+                incong_left_long.setColFromArray(settings.id.cong, incong);
+
+                incong_right_short.setColFromArray(settings.id.cong, incong);
+                incong_right_medium.setColFromArray(settings.id.cong, incong);
+                incong_right_long.setColFromArray(settings.id.cong, incong);
+
+                // Set left and right target directions
+                let cong_left = Matrix.full(cong_trials, 1);
+                let cong_right = Matrix.full(cong_trials, 2);
+                let incong_left = Matrix.full(incong_trials, 1);
+                let incong_right = Matrix.full(incong_trials, 2);
+
+                cong_left_short.setColFromArray(settings.id.target, cong_left);
+                cong_left_medium.setColFromArray(settings.id.target, cong_left);
+                cong_left_long.setColFromArray(settings.id.target, cong_left);
+
+                cong_right_short.setColFromArray(settings.id.target, cong_right);
+                cong_right_medium.setColFromArray(settings.id.target, cong_right);
+                cong_right_long.setColFromArray(settings.id.target, cong_right);
+
+                incong_left_short.setColFromArray(settings.id.target, incong_left);
+                incong_left_medium.setColFromArray(settings.id.target, incong_left);
+                incong_left_long.setColFromArray(settings.id.target, incong_left);
+
+                incong_right_short.setColFromArray(settings.id.target, incong_right);
+                incong_right_medium.setColFromArray(settings.id.target, incong_right);
+                incong_right_long.setColFromArray(settings.id.target, incong_right);
+
+                // Set RSIs
+                let rsi_short_cong = Matrix.full(cong_trials, settings.durations.rsi.short);
+                let rsi_medium_cong = Matrix.full(cong_trials, settings.durations.rsi.medium);
+                let rsi_long_cong = Matrix.full(cong_trials, settings.durations.rsi.long);
+
+                let rsi_short_incong = Matrix.full(incong_trials, settings.durations.rsi.short);
+                let rsi_medium_incong = Matrix.full(incong_trials, settings.durations.rsi.medium);
+                let rsi_long_incong = Matrix.full(incong_trials, settings.durations.rsi.long);
+
+                cong_left_short.setColFromArray(settings.id.rsi, rsi_short_cong);
+                cong_left_medium.setColFromArray(settings.id.rsi, rsi_medium_cong);
+                cong_left_long.setColFromArray(settings.id.rsi, rsi_long_cong);
+
+                cong_right_short.setColFromArray(settings.id.rsi, rsi_short_cong);
+                cong_right_medium.setColFromArray(settings.id.rsi, rsi_medium_cong);
+                cong_right_long.setColFromArray(settings.id.rsi, rsi_long_cong);
+
+                incong_left_short.setColFromArray(settings.id.rsi, rsi_short_incong);
+                incong_left_medium.setColFromArray(settings.id.rsi, rsi_medium_incong);
+                incong_left_long.setColFromArray(settings.id.rsi, rsi_long_incong);
+
+                incong_right_short.setColFromArray(settings.id.rsi, rsi_short_incong);
+                incong_right_medium.setColFromArray(settings.id.rsi, rsi_medium_incong);
+                incong_right_long.setColFromArray(settings.id.rsi, rsi_long_incong);
+
+                // Insert the oddball into 2 random congruent trials
+                // start by merging all the congrument trials
+                const congruent = Matrix.append([
+                    cong_left_short,
+                    cong_left_medium,
+                    cong_left_long,
+                    cong_right_short,
+                    cong_right_medium,
+                    cong_right_long
+                ])
+                congruent.shuffle();
+                congruent.set(0, settings.id.oddball, 1);
+                congruent.set(1, settings.id.oddball, 1);
+                congruent.shuffle();
+
+                let matrix = Matrix.append([
+                    congruent,
+                    incong_left_short,
+                    incong_left_medium,
+                    incong_left_long,
+                    incong_right_short,
+                    incong_right_medium,
+                    incong_right_long
+                ])
+
+                let blocknum_array = Matrix.full(settings.general.trials, ib);
+                matrix.setColFromArray(settings.id.blocknum, blocknum_array);
+
+                matrix = insertTrialNums(matrix, settings);
+                while(isNotValidBlock(matrix, settings)) {
+                    matrix.shuffle();
+                    matrix = insertTrialNums(matrix, settings);
+                }
+
+                if(trialseq) {
+                    trialseq = Matrix.append([ trialseq, matrix ]);
+                } else {
+                    trialseq = matrix;
+                }
+
+            }
+
+            trialseq = insertTrialNums(trialseq, settings);
+
+            return trialseq
+
+        }
+
+        async function main() {
+
+            const settings = Settings();
+            var trialseq = Trialseq(settings);
+
+            Psych.init({ backgroundColor: settings.colors.bgColor });
+
+            trialseq.print();
+
+            const dims = Psych.dims();
+
+            // Flankers + target stimuli
+            const target = Psych.divWithText({
+                text: '',
+                letterSpacing: '3px',
+                color: 'black',
+                fontSize: '5em'
+            }, {
+                top: `${dims.height / 2}px`,
+                left: `${dims.width / 2}px`,
+                borderRadius: '5px',
+                width: '350px',
+                height: '100px',
+                backgroundColor: settings.colors.bgColor
+            })
+
+            // Standard event
+            const triangle = Psych.makeShape('triangle', {
+                top: dims.height / 2,
+                left: dims.width / 2,
+                strokeStyle: 'black',
+                fillStyle: settings.colors.bgColor,
+                lineWidth: 20,
+                size: 300
+            })
+
+            // Oddball
+            const oddball = Psych.makeShape('triangle', {
+                rotate: 180,
+                top: dims.height / 2,
+                left: dims.width / 2,
+                strokeStyle: 'black',
+                fillStyle: settings.colors.bgColor,
+                lineWidth: 20,
+                size: 300
+            })
+
+            // Correct feedback
+            const correctFeedback = Psych.divWithText({
+                text: 'Correct!',
+                color: '#18FF00',
+                letterSpacing: '1px',
+                fontSize: '3em'
+            }, {
+                top: `${dims.height / 2}px`,
+                left: `${dims.width / 2}px`,
+                width: '100%',
+                height: '100px',
+                backgroundColor: settings.colors.bgColor
+            })
+
+            // Incorrect feedback
+            const incorrectFeedback = Psych.divWithText({
+                text: 'You took too long to respond!',
+                color: '#FF0000',
+                letterSpacing: '1px',
+                fontSize: '3em'
+            }, {
+                top: `${dims.height / 2}px`,
+                left: `${dims.width / 2}px`,
+                width: '100%',
+                height: '100px',
+                backgroundColor: settings.colors.bgColor
+            })
+
+            // Novelty
+            const novelty = Psych.divWithText({
+                text: 'NOVELTY!',
+                color: '#FF0000',
+                letterSpacing: '1px',
+                fontSize: '3em'
+            }, {
+                top: `${dims.height / 2}px`,
+                left: `${dims.width / 2}px`,
+                width: '100%',
+                height: '100px',
+                backgroundColor: settings.colors.bgColor
+            })
+
+            const screenItems = [ target, triangle, oddball, correctFeedback, incorrectFeedback, novelty ];
+
+            Psych.prepare(screenItems);
+
+            await Psych.welcome();
+
+            let [trials] = trialseq.shape();
+            var i = 0;
+            while(i < trialseq.shape()[0]) {
+
+                console.log(`Trial number: ${i}`);
+
+                if(i === 0 || trialseq.get(i - 1, settings.id.blocknum) !== trialseq.get(i, settings.id.blocknum)) {
+                    await Psych.countdown();
+                }
+
+                // First get the direction of the target
+                const target_direction = trialseq.get(i, settings.id.target) === 1 ? settings.targets.left : settings.targets.right;
+
+                // Get the flanker directions
+                var flanker
+                if(trialseq.get(i, settings.id.cong) === 1 && target_direction === settings.targets.left) {
+                    flanker = settings.targets.left
+                } else if (trialseq.get(i, settings.id.cong) === 1 && target_direction === settings.targets.right) {
+                    flanker = settings.targets.right
+                } else if (trialseq.get(i, settings.id.cong) === 2 && target_direction === settings.targets.left) {
+                    flanker = settings.targets.right
+                } else if (trialseq.get(i, settings.id.cong) === 2 && target_direction === settings.targets.right) {
+                    flanker = settings.targets.left
+                }
+
+                // Build the full target + flankers & attach to target
+                target.firstChild.innerText = flanker + flanker + target_direction + flanker + flanker;
+
+                // This marks the target stimulus display
+                const targetStart = Psych.display([ target ]);
+
+                // Wait 500ms for a response
+                const response = await targetStart.waitForKeysWithTimeout(Object.values(settings.keys), settings.durations.deadline);
+
+                // There was either a response, or the timeout expired.
+                // As long as this is not an oddball/novel trial, the RSI begins now
+                const targetEnd = Psych.hide([ target ]);
+
+                // Code accuracy
+                if(response.keyPressed) {
+
+                    // Get current trial expected key code
+                    const currentTrialCode = trialseq.get(i, settings.id.target) === 1 ? settings.keys.left : settings.keys.right;
+
+                    // If keycodes match, correct trial
+                    if(response.keyCode === currentTrialCode) {
+                        trialseq.set(i, settings.id.acc, settings.acc.correct); // accuracy
+                        trialseq.set(i, settings.id.rt, response.elapsed); // rt
+                    } else {
+                        // Otherwise they made an error
+                        trialseq.set(i, settings.id.acc, settings.acc.error); // accuracy
+                        trialseq.set(i, settings.id.rt, response.elapsed); // rt
+
+                        // If they made an error, then we need to insert the next valid novelty event
+                        trialseq = insertNovelty(trialseq, i, settings);
+                    }
+
+                } else {
+                    // Nothing pressed, miss
+                    trialseq.set(i, settings.id.acc, settings.acc.miss);
+                }
+
+                // We wait 50 ms as filler between target & feedback (being the triangle)
+                // We use a new PsychTime() instance here because we want to save our targetEnd
+                // until we need to fill to the end of the RSI
+                await (new PsychTime()).waitUntil(settings.durations.space);
+
+                // This is where we break off to either the standard triangle, or the oddball/novelty
+                if(trialseq.get(i, settings.id.oddball) === 1) {
+
+                    // Oddball event
+                    const oddballStart = Psych.display([ oddball ]);
+
+                    // Wait for oddball response
+                    const oddballResponse = await oddballStart.waitForKeyWithTimeout(settings.responseCodes.spacebar, settings.durations.feedback_oddball);
+
+                    // Hide the oddball
+                    Psych.hide([ oddball ]);
+
+                    // Get the feedback type and record rt
+                    const fb = oddballResponse.keyPressed ? correctFeedback : incorrectFeedback;
+                    const feedback_rt = oddballResponse.keyPressed ? oddballResponse.elapsed : 0;
+                    trialseq.set(i, settings.id.feedback_rt, feedback_rt);
+
+                    // Display feedback
+                    const fbStart = Psych.display([ fb ]);
+
+                    // For feedback duration
+                    const fbEnd = await fbStart.waitUntil(settings.durations.feedback_oddball_comment);
+
+                    // Hide feedback
+                    Psych.hide([ fb ]);
+
+                    // Wait buffer duration
+                    await fbEnd.psychTime.waitUntil(settings.durations.feedback_oddball_comment_buffer);
+
+                } else if (trialseq.get(i, settings.id.novelty) === 1) {
+
+                    // Novelty event
+                    const noveltyStart = Psych.display([ novelty ]);
+
+                    // Wait duration of the novelty
+                    const noveltyEnd = await noveltyStart.waitUntil(settings.durations.novelty);
+
+                    Psych.hide([ novelty ]);
+
+                    // Wait duration of novelty buffer
+                    await noveltyEnd.psychTime.waitUntil(settings.durations.novelty_buffer);
+
+                } else {
+
+                    // Standard event
+                    const feedbackStart = Psych.display([ triangle ]);
+
+                    // Wait the duration of the feedback (1000ms)
+                    await feedbackStart.waitUntil(settings.durations.feedback_standard);
+
+                    // Hide the feedback
+                    Psych.hide([ triangle ]);
+
+                    // Wait out the rest of the RSI
+                    await targetEnd.waitUntil(trialseq.get(i, settings.id.rsi));
+
+                }
+
+                // Block feedback
+                if(i + 1 === trialseq.shape()[0] || trialseq.get(i, settings.id.blocknum) !== trialseq.get(i + 1, settings.id.blocknum)) {
+
+                    // Extract current block
+                    const block = trialseq.getRowsAndColumnsByCriteria(row => row[settings.id.blocknum] === trialseq.get(i, settings.id.blocknum));
+
+                    // Separate by accuracy
+                    const corr = block.getRowsAndColumnsByCriteria(row => row[settings.id.acc] === 1);
+                    const err = block.getRowsAndColumnsByCriteria(row => row[settings.id.acc] === 2);
+                    const miss = block.getRowsAndColumnsByCriteria(row => row[settings.id.acc] === 999);
+
+                    // Calculate rt
+                    const rt = corr ? Matrix.mean(corr.getCol(settings.id.rt)) : 0;
+
+                    // Calculate ratios
+                    const err_pct = err ? parseInt((err.shape()[0] / block.shape()[0]) * 100) : 0;
+                    const miss_pct = miss ? parseInt((miss.shape()[0] / block.shape()[0]) * 100) : 0;
+
+                    const fb = [
+                        `Mean reaction time: ${rt}`,
+                        `Errors: ${err_pct}%`,
+                        `Misses: ${miss_pct}%`
+                    ]
+
+                    await Psych.blockFeedback(fb);
+
+                }
+
+                if(trialseq.get(i, settings.id.acc) === 2) {
+                    console.log(`Trial: ${i}`)
+                    trialseq.print();
+                    // await Psych.waitForKey();
+                }
+
+                i++;
+
+            }
+
+            await Psych.welcome({ text: 'Task complete! Thank you for participating :)' });
+
+        }
+
+        (async () => {
+            
+            await main();
+
+        })();
+
+    </script>
+
+</body>
+</html>
