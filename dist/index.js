@@ -594,13 +594,19 @@ var Psych = function () {
                 div.appendChild(text); // put in text
                 body.appendChild(div); // add to DOM
 
-                setTimeout(function () {
+                var setListener = function setListener() {
                     document.addEventListener('keydown', function (e) {
                         if (e.keyCode === 32) {
                             body.removeChild(div);
                             resolve();
+                        } else {
+                            setListener();
                         }
                     }, { once: true });
+                };
+
+                setTimeout(function () {
+                    return setListener();
                 }, waitDuration);
             });
         }
