@@ -532,7 +532,7 @@ class Psych {
     }
 
     // Present a welcome screen
-    static welcome(options = {}) {
+    static welcome(options = {}, waitDuration = 3000) {
 
         const _options = Object.assign({
             text: 'Welcome! Press the space bar to begin.',
@@ -560,7 +560,7 @@ class Psych {
                         resolve();
                     }
                 }, { once: true });
-            }, 3000);
+            }, waitDuration);
 
         })
 
