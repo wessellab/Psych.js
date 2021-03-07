@@ -45,13 +45,15 @@
                         long: 3000
                     },
                     deadline: 500,
-                    space: 1000,
-                    feedback_standard: 500,
+                    space: 50,
+                    feedback_standard: 200,
                     feedback_oddball: 2000,
                     feedback_oddball_comment: 500,
                     feedback_oddball_comment_buffer: 500,
                     novelty: 1000,
-                    novelty_buffer: 500
+                    novelty_buffer: 500,
+                    missFeedback: 500,
+                    missFeedbackBuffer: 1000
                 },
                 acc: {
                     miss: 999,
@@ -542,7 +544,7 @@
                 text: '',
                 letterSpacing: '3px',
                 color: 'black',
-                fontSize: '5em'
+                fontSize: '6em'
             }, {
                 top: `${dims.height / 2}px`,
                 left: `${dims.width / 2}px`,
@@ -615,7 +617,21 @@
                 backgroundColor: settings.colors.bgColor
             })
 
-            const screenItems = [ target, triangle, oddball, correctFeedback, incorrectFeedback, novelty ];
+            // Miss feedback
+            const missFeedback = Psych.divWithText({
+                text: 'MISS!',
+                color: 'red',
+                letterSpacing: '1px',
+                fontSize: '4em'
+            }, {
+                top: `${dims.height / 2}px`,
+                left: `${dims.width / 2}px`,
+                width: '100%',
+                height: '150px',
+                backgroundColor: settings.colors.bgColor
+            })
+
+            const screenItems = [ target, triangle, oddball, correctFeedback, incorrectFeedback, novelty, missFeedback ];
 
             Psych.prepare(screenItems);
 
@@ -730,6 +746,20 @@
                     // Wait duration of novelty buffer
                     await noveltyEnd.psychTime.waitUntil(settings.durations.novelty_buffer);
 
+                } else if (trialseq.get(i, settings.id.acc) === 999) {
+
+                    // If its a "miss" then display FASTER! feedback
+                    const feedbackStart = Psych.display([ missFeedback ]);
+
+                    // Wait 500ms
+                    const feedbackEnd = await feedbackStart.waitUntil(settings.durations.missFeedback);
+
+                    // Hide feedback
+                    Psych.hide([ missFeedback ]);
+
+                    // Give a 1000ms buffer to the next trial
+                    await feedbackEnd.psychTime.waitUntil(settings.durations.missFeedbackBuffer);
+                
                 } else {
 
                     // Standard event
