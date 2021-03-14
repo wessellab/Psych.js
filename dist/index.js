@@ -1431,7 +1431,7 @@ var Matrix = function () {
             });
         }
 
-        // Shuffle an array (not in place)
+        // Scan an array to see if there are multiple in a row
 
     }, {
         key: 'print',
@@ -1442,6 +1442,23 @@ var Matrix = function () {
             console.table(this.values);
         }
     }], [{
+        key: 'scan',
+        value: function scan(array, length) {
+            var count = 0,
+                value = array[0];
+
+            return array.some(function (a) {
+                if (value !== a) {
+                    count = 0;
+                    value = a;
+                }
+                return ++count === length;
+            });
+        }
+
+        // Shuffle an array (not in place)
+
+    }, {
         key: 'shuffleArray',
         value: function shuffleArray(arr) {
             var j, x, i;

@@ -1202,6 +1202,20 @@ class Matrix {
         this.values = this.values.sort(() => Math.random() - 0.5)
     }
 
+    // Scan an array to see if there are multiple in a row
+    static scan(array, length) {
+        var count = 0,
+            value = array[0];
+
+        return array.some(function (a) {
+            if (value !== a) {
+                count = 0;
+                value = a;
+            }
+            return ++count === length;
+        });
+    }
+
     // Shuffle an array (not in place)
     static shuffleArray(arr) {
         var j, x, i;
