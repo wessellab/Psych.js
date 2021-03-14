@@ -135,7 +135,7 @@
                         rsi_values.every((val, i, arr) => val === arr[0])) ||
                         novelties > 1
                     ) {
-                        return true
+                        return true 
                     }
 
                 }
@@ -207,25 +207,17 @@
             const oddballSum = Matrix.sum([
                 i > 1 ? trialseq.get(i - 1, settings.id.oddball) : 0,
                 i > 2 ? trialseq.get(i - 2, settings.id.oddball) : 0,
-                i > 3 ? trialseq.get(i - 3, settings.id.oddball) : 0,
-                i > 4 ? trialseq.get(i - 4, settings.id.oddball) : 0,
-                i > 5 ? trialseq.get(i - 5, settings.id.oddball) : 0,
                 trialseq.get(i, settings.id.oddball),
                 i + 1 < trialseq.shape()[0] ? trialseq.get(i + 1, settings.id.oddball) : 0,
-                i + 2 < trialseq.shape()[0] ? trialseq.get(i + 2, settings.id.oddball) : 0,
-                i + 3 < trialseq.shape()[0] ? trialseq.get(i + 3, settings.id.oddball) : 0
+                i + 2 < trialseq.shape()[0] ? trialseq.get(i + 2, settings.id.oddball) : 0
             ]);
 
             const noveltySum = Matrix.sum([
                 i > 1 ? trialseq.get(i - 1, settings.id.novelty) : 0,
                 i > 2 ? trialseq.get(i - 2, settings.id.novelty) : 0,
-                i > 3 ? trialseq.get(i - 3, settings.id.novelty) : 0,
-                i > 4 ? trialseq.get(i - 4, settings.id.novelty) : 0,
-                i > 5 ? trialseq.get(i - 5, settings.id.novelty) : 0,
                 trialseq.get(i, settings.id.novelty),
                 i + 1 < trialseq.shape()[0] ? trialseq.get(i + 1, settings.id.novelty) : 0,
-                i + 2 < trialseq.shape()[0] ? trialseq.get(i + 2, settings.id.novelty) : 0,
-                i + 3 < trialseq.shape()[0] ? trialseq.get(i + 3, settings.id.novelty) : 0
+                i + 2 < trialseq.shape()[0] ? trialseq.get(i + 2, settings.id.novelty) : 0
             ]);
 
             if(
@@ -330,9 +322,9 @@
             // Unset the current oddball
             trialseq.set(trialnum, settings.id.oddball, 0);
 
-            if(trialnum + 3 < trialseq.shape()[0]) {
+            if(trialnum + 2 < trialseq.shape()[0]) {
                 
-                for(let i = trialnum + 3; i < trialseq.shape()[0] - 1; i++) {
+                for(let i = trialnum + 2; i < trialseq.shape()[0] - 1; i++) {
 
                     const s = Matrix.sum([
                         trialseq.get(i - 1, settings.id.oddball),
@@ -699,11 +691,6 @@
                     trialseq.set(i, settings.id.acc, settings.acc.miss);
                 }
 
-                // We wait 50 ms as filler between target & feedback (being the triangle)
-                // We use a new PsychTime() instance here because we want to save our targetEnd
-                // until we need to fill to the end of the RSI
-                await (new PsychTime()).waitUntil(settings.durations.space);
-
                 // This is where we break off to either the standard triangle, or the oddball/novelty
                 if(trialseq.get(i, settings.id.oddball) === 1) {
 
@@ -819,8 +806,70 @@
         }
 
         (async () => {
+
+            function shuffle(a) {
+                var j, x, i;
+                for (i = a.length - 1; i > 0; i--) {
+                    j = Math.floor(Math.random() * (i + 1));
+                    x = a[i];
+                    a[i] = a[j];
+                    a[j] = x;
+                }
+                return a;
+            }
+
+            function check(array, length) {
+                var count = 0,
+                    value = array[0];
+
+                return array.some(function (a) {
+                    if (value !== a) {
+                        count = 0;
+                        value = a;
+                    }
+                    return ++count === length;
+                });
+            }
+
+
+            function shuffle3InaRow(arr) {
+
+                var isDone = false;
+                arr = shuffle(arr);
+                while (check(arr, 3)) arr = shuffle(arr)
+                return arr;
+
+            }
             
-            await main();
+            // await main();
+            const settings = Settings();
+            const trialseq = new Matrix(settings.general.trials, settings.id.cols());
+
+            const cong_total = settings.general.trials * settings.general.congruent;
+            const target_total = settings.general.trials * settings.general.target;
+            const rsi_total = settings.general.trials * settings.general.rsi;
+
+            const congruent = shuffle3InaRow([
+                ...Matrix.full(cong_total, 1),
+                ...Matrix.full(cong_total, 2)
+            ])
+
+            const target = shuffle3InaRow([
+                ...Matrix.full(target_total, 1),
+                ...Matrix.full(target_total, 2)
+            ])
+
+            const rsi = shuffle3InaRow([
+                ...Matrix.full(rsi_total, settings.durations.rsi.short),
+                ...Matrix.full(rsi_total, settings.durations.rsi.medium),
+                ...Matrix.full(rsi_total, settings.durations.rsi.long)
+            ])
+
+            trialseq.setColFromArray(settings.id.cong, congruent);
+            trialseq.setColFromArray(settings.id.target, target);
+            trialseq.setColFromArray(settings.id.rsi, rsi);
+
+            trialseq.print();
 
         })();
 

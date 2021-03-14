@@ -1431,7 +1431,7 @@ var Matrix = function () {
             });
         }
 
-        // Create an array of zeros
+        // Shuffle an array (not in place)
 
     }, {
         key: 'print',
@@ -1442,6 +1442,21 @@ var Matrix = function () {
             console.table(this.values);
         }
     }], [{
+        key: 'shuffleArray',
+        value: function shuffleArray(arr) {
+            var j, x, i;
+            for (i = arr.length - 1; i > 0; i--) {
+                j = Math.floor(Math.random() * (i + 1));
+                x = arr[i];
+                arr[i] = arr[j];
+                arr[j] = x;
+            }
+            return arr;
+        }
+
+        // Create an array of zeros
+
+    }, {
         key: 'zeros',
         value: function zeros(len) {
             var a = new Array(len);

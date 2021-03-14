@@ -1202,6 +1202,18 @@ class Matrix {
         this.values = this.values.sort(() => Math.random() - 0.5)
     }
 
+    // Shuffle an array (not in place)
+    static shuffleArray(arr) {
+        var j, x, i;
+        for (i = arr.length - 1; i > 0; i--) {
+            j = Math.floor(Math.random() * (i + 1));
+            x = arr[i];
+            arr[i] = arr[j];
+            arr[j] = x;
+        }
+        return arr;
+    }
+
     // Create an array of zeros
     static zeros(len) {
         var a = new Array(len);
