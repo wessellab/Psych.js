@@ -65,8 +65,8 @@
                     right: 80
                 },
                 general: {
-                    blocks: 1,
-                    trials: 36,
+                    blocks: 2,
+                    trials: 72,
                     congruent: 0.5,
                     target: 0.5,
                     rsi: 1 / 3,
@@ -326,19 +326,24 @@
                 
                 for(let i = trialnum + 2; i < trialseq.shape()[0] - 1; i++) {
 
+                    // If we're outside the current block, then we can just break
+                    if(trialseq.get(trialnum, settings.id.block) !== trialseq.get(i, settings.id.block)) {
+                        console.log(`No more oddball spots available in current block, nothing set`);
+                        break;
+                    }
+
+                    // Check for oddballs/novelties on current trial, before, and after
                     const s = Matrix.sum([
                         trialseq.get(i - 1, settings.id.oddball),
-                        trialseq.get(i, settings.id.oddball),
-                        i + 1 < trialseq.shape()[0] ? trialseq.get(i + 1, settings.id.oddball) : 0,
                         trialseq.get(i - 1, settings.id.novelty),
-                        i + 1 < trialseq.shape()[0] ? trialseq.get(i + 1, settings.id.novelty) : 0,
-                        trialseq.get(i, settings.id.novelty)
+                        trialseq.get(i, settings.id.oddball),
+                        trialseq.get(i, settings.id.novelty),
+                        i + 1 < trialseq.shape()[0] ? trialseq.get(i + 1, settings.id.oddball) : 0,
+                        i + 1 < trialseq.shape()[0] ? trialseq.get(i + 1, settings.id.novelty) : 0
                     ])
 
                     if(s === 0) {
                         trialseq.set(i, settings.id.oddball, 1);
-                        console.log('Moved oddball to: ');
-                        console.log(trialseq.getRow(i));
                     }
 
                 }
@@ -354,12 +359,6 @@
     
                     if(isValidNovelty(trialseq, trialnum, i, settings)) {
                         trialseq.set(i, settings.id.novelty, 1);
-
-                        console.log('Current Trial: ');
-                        console.log(trialseq.getRow(trialnum));
-
-                        console.log('Inserted novelty');
-                        console.log(trialseq.getRow(i));
 
                         if(trialseq.get(i, settings.id.oddball) === 1) {
                             trialseq = moveOddball(trialseq, i, settings)
@@ -387,7 +386,7 @@
 
         }
 
-        function getOddballIndicies() {
+        function getOddballIndicies(settings) {
 
             var val1 = Matrix.randInt(0, settings.general.trials);
             var val2 = Matrix.randInt(0, settings.general.trials);
@@ -399,142 +398,71 @@
 
         }
 
+        function getOddballsForBlock(trialseq, settings) {
+
+            // First get the indicies of where we would place the oddballs
+            // (at least 20 trials apart)
+            var [oddball_idx1, oddball_idx2] = getOddballIndicies(settings);
+
+            // Now make sure that those are on congruent trials
+            while(
+                trialseq.get(oddball_idx1, settings.id.cong) !== 1 ||
+                trialseq.get(oddball_idx2, settings.id.cong) !== 1
+            ) [oddball_idx1, oddball_idx2] = getOddballIndicies(settings)
+
+            const oddballs = Matrix.zeros(settings.general.trials);
+            oddballs[oddball_idx1] = 1;
+            oddballs[oddball_idx2] = 1;
+            return oddballs;
+
+        }
+
         function Trialseq(settings) {
 
             var trialseq = undefined;
 
             for(let ib = 0; ib < settings.general.blocks; ib++) {
 
-                // Get the number of congruent and incongruent trials
-                let cong_trials = (settings.general.trials * settings.general.congruent / 2 / 3);
-                let incong_trials = (settings.general.trials * settings.general.congruent / 2 / 3);
-                
-                // Create blocks for congruency / target side / rsi length
-                let cong_left_short = new Matrix(cong_trials, settings.id.cols());
-                let cong_left_medium = new Matrix(cong_trials, settings.id.cols());
-                let cong_left_long = new Matrix(cong_trials, settings.id.cols());
+                const block = new Matrix(settings.general.trials, settings.id.cols());
 
-                let cong_right_short = new Matrix(cong_trials, settings.id.cols());
-                let cong_right_medium = new Matrix(cong_trials, settings.id.cols());
-                let cong_right_long = new Matrix(cong_trials, settings.id.cols());
+                const cong_total = settings.general.trials * settings.general.congruent;
+                const target_total = settings.general.trials * settings.general.target;
+                const rsi_total = settings.general.trials * settings.general.rsi;
 
-                let incong_left_short = new Matrix(incong_trials, settings.id.cols());
-                let incong_left_medium = new Matrix(incong_trials, settings.id.cols());
-                let incong_left_long = new Matrix(incong_trials, settings.id.cols());
-
-                let incong_right_short = new Matrix(incong_trials, settings.id.cols());
-                let incong_right_medium = new Matrix(incong_trials, settings.id.cols());
-                let incong_right_long = new Matrix(incong_trials, settings.id.cols());
-
-                // Set congruency
-                let cong = Matrix.full(cong_trials, 1);
-                let incong = Matrix.full(incong_trials, 2);
-
-                cong_left_short.setColFromArray(settings.id.cong, cong);
-                cong_left_medium.setColFromArray(settings.id.cong, cong);
-                cong_left_long.setColFromArray(settings.id.cong, cong);
-
-                cong_right_short.setColFromArray(settings.id.cong, cong);
-                cong_right_medium.setColFromArray(settings.id.cong, cong);
-                cong_right_long.setColFromArray(settings.id.cong, cong);
-
-                incong_left_short.setColFromArray(settings.id.cong, incong);
-                incong_left_medium.setColFromArray(settings.id.cong, incong);
-                incong_left_long.setColFromArray(settings.id.cong, incong);
-
-                incong_right_short.setColFromArray(settings.id.cong, incong);
-                incong_right_medium.setColFromArray(settings.id.cong, incong);
-                incong_right_long.setColFromArray(settings.id.cong, incong);
-
-                // Set left and right target directions
-                let cong_left = Matrix.full(cong_trials, 1);
-                let cong_right = Matrix.full(cong_trials, 2);
-                let incong_left = Matrix.full(incong_trials, 1);
-                let incong_right = Matrix.full(incong_trials, 2);
-
-                cong_left_short.setColFromArray(settings.id.target, cong_left);
-                cong_left_medium.setColFromArray(settings.id.target, cong_left);
-                cong_left_long.setColFromArray(settings.id.target, cong_left);
-
-                cong_right_short.setColFromArray(settings.id.target, cong_right);
-                cong_right_medium.setColFromArray(settings.id.target, cong_right);
-                cong_right_long.setColFromArray(settings.id.target, cong_right);
-
-                incong_left_short.setColFromArray(settings.id.target, incong_left);
-                incong_left_medium.setColFromArray(settings.id.target, incong_left);
-                incong_left_long.setColFromArray(settings.id.target, incong_left);
-
-                incong_right_short.setColFromArray(settings.id.target, incong_right);
-                incong_right_medium.setColFromArray(settings.id.target, incong_right);
-                incong_right_long.setColFromArray(settings.id.target, incong_right);
-
-                // Set RSIs
-                let rsi_short_cong = Matrix.full(cong_trials, settings.durations.rsi.short);
-                let rsi_medium_cong = Matrix.full(cong_trials, settings.durations.rsi.medium);
-                let rsi_long_cong = Matrix.full(cong_trials, settings.durations.rsi.long);
-
-                let rsi_short_incong = Matrix.full(incong_trials, settings.durations.rsi.short);
-                let rsi_medium_incong = Matrix.full(incong_trials, settings.durations.rsi.medium);
-                let rsi_long_incong = Matrix.full(incong_trials, settings.durations.rsi.long);
-
-                cong_left_short.setColFromArray(settings.id.rsi, rsi_short_cong);
-                cong_left_medium.setColFromArray(settings.id.rsi, rsi_medium_cong);
-                cong_left_long.setColFromArray(settings.id.rsi, rsi_long_cong);
-
-                cong_right_short.setColFromArray(settings.id.rsi, rsi_short_cong);
-                cong_right_medium.setColFromArray(settings.id.rsi, rsi_medium_cong);
-                cong_right_long.setColFromArray(settings.id.rsi, rsi_long_cong);
-
-                incong_left_short.setColFromArray(settings.id.rsi, rsi_short_incong);
-                incong_left_medium.setColFromArray(settings.id.rsi, rsi_medium_incong);
-                incong_left_long.setColFromArray(settings.id.rsi, rsi_long_incong);
-
-                incong_right_short.setColFromArray(settings.id.rsi, rsi_short_incong);
-                incong_right_medium.setColFromArray(settings.id.rsi, rsi_medium_incong);
-                incong_right_long.setColFromArray(settings.id.rsi, rsi_long_incong);
-
-                // Insert the oddball into 2 random congruent trials
-                // start by merging all the congrument trials
-                const congruent = Matrix.append([
-                    cong_left_short,
-                    cong_left_medium,
-                    cong_left_long,
-                    cong_right_short,
-                    cong_right_medium,
-                    cong_right_long
-                ])
-                congruent.shuffle();
-                congruent.set(0, settings.id.oddball, 1);
-                congruent.set(1, settings.id.oddball, 1);
-                congruent.shuffle();
-
-                let matrix = Matrix.append([
-                    congruent,
-                    incong_left_short,
-                    incong_left_medium,
-                    incong_left_long,
-                    incong_right_short,
-                    incong_right_medium,
-                    incong_right_long
+                const congruent = shuffle3InaRow([
+                    ...Matrix.full(cong_total, 1),
+                    ...Matrix.full(cong_total, 2)
                 ])
 
-                let blocknum_array = Matrix.full(settings.general.trials, ib);
-                matrix.setColFromArray(settings.id.blocknum, blocknum_array);
+                const target = shuffle3InaRow([
+                    ...Matrix.full(target_total, 1),
+                    ...Matrix.full(target_total, 2)
+                ])
 
-                matrix = insertTrialNums(matrix, settings);
-                while(isNotValidBlock(matrix, settings)) {
-                    matrix.shuffle();
-                    matrix = insertTrialNums(matrix, settings);
-                }
+                const rsi = shuffle3InaRow([
+                    ...Matrix.full(rsi_total, settings.durations.rsi.short),
+                    ...Matrix.full(rsi_total, settings.durations.rsi.medium),
+                    ...Matrix.full(rsi_total, settings.durations.rsi.long)
+                ])
 
-                if(trialseq) {
-                    trialseq = Matrix.append([ trialseq, matrix ]);
-                } else {
-                    trialseq = matrix;
-                }
+                block.setColFromArray(settings.id.cong, congruent);
+                block.setColFromArray(settings.id.target, target);
+                block.setColFromArray(settings.id.rsi, rsi);
+
+                // Set the oddball locations
+                const oddballs = getOddballsForBlock(block, settings);
+                block.setColFromArray(settings.id.oddball, oddballs);
+
+                // Set block number
+                const blocknums = Matrix.full(settings.general.trials, ib);
+                block.setColFromArray(settings.id.blocknum, blocknums);
+
+                // Append to trialseq
+                trialseq = trialseq ? Matrix.append([ trialseq, block ]) : block
 
             }
 
+            // Insert trial nums
             trialseq = insertTrialNums(trialseq, settings);
 
             return trialseq
@@ -634,8 +562,9 @@
             const missFeedback = Psych.divWithText({
                 text: 'MISS!',
                 color: 'red',
+                fontWeight: 'bold',
                 letterSpacing: '1px',
-                fontSize: '4em'
+                fontSize: '5em'
             }, {
                 top: `${dims.height / 2}px`,
                 left: `${dims.width / 2}px`,
@@ -708,8 +637,22 @@
                     }
 
                 } else {
+
                     // Nothing pressed, miss
                     trialseq.set(i, settings.id.acc, settings.acc.miss);
+
+                    // If the current trial is an oddball then move it
+                    if(trialseq.get(i, settings.id.oddball) === 1) {
+                        trialseq = moveOddball(trialseq, i, settings);
+                    }
+
+                    // If the current trial is a novelty and we got a miss, then
+                    // unset it an find another comparable trial
+                    if(trialseq.get(i, settings.id.novelty) === 1) {
+                        trialseq.set(i, settings.id.novelty, 0); // first unset current trial
+                        trialseq = insertNovelty(trialseq, i, settings);
+                    }
+
                 }
 
                 // This is where we break off to either the standard triangle, or the oddball/novelty
@@ -826,46 +769,10 @@
 
         }
 
-        const settings = Settings();
-
+        
         (async () => {
             
-            // await main();
-            
-            // const trialseq = new Matrix(settings.general.trials, settings.id.cols());
-
-            // const cong_total = settings.general.trials * settings.general.congruent;
-            // const target_total = settings.general.trials * settings.general.target;
-            // const rsi_total = settings.general.trials * settings.general.rsi;
-
-            // const congruent = shuffle3InaRow([
-            //     ...Matrix.full(cong_total, 1),
-            //     ...Matrix.full(cong_total, 2)
-            // ])
-
-            // const target = shuffle3InaRow([
-            //     ...Matrix.full(target_total, 1),
-            //     ...Matrix.full(target_total, 2)
-            // ])
-
-            // const rsi = shuffle3InaRow([
-            //     ...Matrix.full(rsi_total, settings.durations.rsi.short),
-            //     ...Matrix.full(rsi_total, settings.durations.rsi.medium),
-            //     ...Matrix.full(rsi_total, settings.durations.rsi.long)
-            // ])
-
-            // trialseq.setColFromArray(settings.id.cong, congruent);
-            // trialseq.setColFromArray(settings.id.target, target);
-            // trialseq.setColFromArray(settings.id.rsi, rsi);
-
-            // trialseq.print();
-
-            const oddballs = Matrix.zeros(settings.general.trials);
-            console.log(oddballs);
-
-            
-
-            console.log(getOddballIndicies())
+            await main();
 
         })();
 
