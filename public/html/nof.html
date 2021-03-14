@@ -389,11 +389,11 @@
 
         function getOddballIndicies() {
 
-            var val1 = randInt(0, settings.general.trials);
-            var val2 = randInt(0, settings.general.trials);
+            var val1 = Matrix.randInt(0, settings.general.trials);
+            var val2 = Matrix.randInt(0, settings.general.trials);
             while(val1 - val2 < 20) {
-                val1 = randInt(0, settings.general.trials);
-                val2 = randInt(0, settings.general.trials);
+                val1 = Matrix.randInt(0, settings.general.trials);
+                val2 = Matrix.randInt(0, settings.general.trials);
             }
             return [val1, val2];
 
@@ -826,10 +826,12 @@
 
         }
 
+        const settings = Settings();
+
         (async () => {
             
             // await main();
-            const settings = Settings();
+            
             // const trialseq = new Matrix(settings.general.trials, settings.id.cols());
 
             // const cong_total = settings.general.trials * settings.general.congruent;
@@ -857,12 +859,6 @@
             // trialseq.setColFromArray(settings.id.rsi, rsi);
 
             // trialseq.print();
-
-            function randInt(min, max) {
-                min = Math.ceil(min);
-                max = Math.floor(max);
-                return Math.floor(Math.random() * (max - min) + min); //The maximum is exclusive and the minimum is inclusive
-            }
 
             const oddballs = Matrix.zeros(settings.general.trials);
             console.log(oddballs);

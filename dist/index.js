@@ -1434,20 +1434,10 @@ var Matrix = function () {
         // Scan an array to see if there are multiple in a row
 
     }, {
-        key: 'randInt',
+        key: 'print',
 
-
-        // Get a random integer between two values
-        value: function randInt(min, max) {
-            min = Math.ceil(min);
-            max = Math.floor(max);
-            return Math.floor(Math.random() * (max - min) + min); //The maximum is exclusive and the minimum is inclusive
-        }
 
         // Print the matrix as a table to the console
-
-    }, {
-        key: 'print',
         value: function print() {
             console.table(this.values);
         }
@@ -1656,6 +1646,16 @@ var Matrix = function () {
             return arr.reduce(function (acc, val) {
                 return acc + val;
             }, 0);
+        }
+
+        // Get a random integer between two values
+
+    }, {
+        key: 'randInt',
+        value: function randInt(min, max) {
+            min = Math.ceil(min);
+            max = Math.floor(max);
+            return Math.floor(Math.random() * (max - min) + min); //The maximum is exclusive and the minimum is inclusive
         }
     }]);
 
