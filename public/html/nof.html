@@ -378,6 +378,27 @@
 
         }
 
+        function shuffle3InaRow(arr) {
+
+            var isDone = false;
+            arr = Matrix.shuffleArray(arr);
+            while (Matrix.scan(arr, 3)) arr = Matrix.shuffleArray(arr)
+            return arr;
+
+        }
+
+        function getOddballIndicies() {
+
+            var val1 = randInt(0, settings.general.trials);
+            var val2 = randInt(0, settings.general.trials);
+            while(val1 - val2 < 20) {
+                val1 = randInt(0, settings.general.trials);
+                val2 = randInt(0, settings.general.trials);
+            }
+            return [val1, val2];
+
+        }
+
         function Trialseq(settings) {
 
             var trialseq = undefined;
@@ -806,59 +827,49 @@
         }
 
         (async () => {
-
-            function check(array, length) {
-                var count = 0,
-                    value = array[0];
-
-                return array.some(function (a) {
-                    if (value !== a) {
-                        count = 0;
-                        value = a;
-                    }
-                    return ++count === length;
-                });
-            }
-
-
-            function shuffle3InaRow(arr) {
-
-                var isDone = false;
-                arr = Matrix.shuffleArray(arr);
-                while (check(arr, 3)) arr = Matrix.shuffleArray(arr)
-                return arr;
-
-            }
             
             // await main();
             const settings = Settings();
-            const trialseq = new Matrix(settings.general.trials, settings.id.cols());
+            // const trialseq = new Matrix(settings.general.trials, settings.id.cols());
 
-            const cong_total = settings.general.trials * settings.general.congruent;
-            const target_total = settings.general.trials * settings.general.target;
-            const rsi_total = settings.general.trials * settings.general.rsi;
+            // const cong_total = settings.general.trials * settings.general.congruent;
+            // const target_total = settings.general.trials * settings.general.target;
+            // const rsi_total = settings.general.trials * settings.general.rsi;
 
-            const congruent = shuffle3InaRow([
-                ...Matrix.full(cong_total, 1),
-                ...Matrix.full(cong_total, 2)
-            ])
+            // const congruent = shuffle3InaRow([
+            //     ...Matrix.full(cong_total, 1),
+            //     ...Matrix.full(cong_total, 2)
+            // ])
 
-            const target = shuffle3InaRow([
-                ...Matrix.full(target_total, 1),
-                ...Matrix.full(target_total, 2)
-            ])
+            // const target = shuffle3InaRow([
+            //     ...Matrix.full(target_total, 1),
+            //     ...Matrix.full(target_total, 2)
+            // ])
 
-            const rsi = shuffle3InaRow([
-                ...Matrix.full(rsi_total, settings.durations.rsi.short),
-                ...Matrix.full(rsi_total, settings.durations.rsi.medium),
-                ...Matrix.full(rsi_total, settings.durations.rsi.long)
-            ])
+            // const rsi = shuffle3InaRow([
+            //     ...Matrix.full(rsi_total, settings.durations.rsi.short),
+            //     ...Matrix.full(rsi_total, settings.durations.rsi.medium),
+            //     ...Matrix.full(rsi_total, settings.durations.rsi.long)
+            // ])
 
-            trialseq.setColFromArray(settings.id.cong, congruent);
-            trialseq.setColFromArray(settings.id.target, target);
-            trialseq.setColFromArray(settings.id.rsi, rsi);
+            // trialseq.setColFromArray(settings.id.cong, congruent);
+            // trialseq.setColFromArray(settings.id.target, target);
+            // trialseq.setColFromArray(settings.id.rsi, rsi);
 
-            trialseq.print();
+            // trialseq.print();
+
+            function randInt(min, max) {
+                min = Math.ceil(min);
+                max = Math.floor(max);
+                return Math.floor(Math.random() * (max - min) + min); //The maximum is exclusive and the minimum is inclusive
+            }
+
+            const oddballs = Matrix.zeros(settings.general.trials);
+            console.log(oddballs);
+
+            
+
+            console.log(getOddballIndicies())
 
         })();
 

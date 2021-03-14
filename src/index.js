@@ -1361,8 +1361,16 @@ class Matrix {
         return arr.reduce((acc, val) => acc + val, 0) / arr.length;
     }
 
+    // Get the sum of an array
     static sum(arr) {
         return arr.reduce((acc, val) => acc + val, 0)
+    }
+
+    // Get a random integer between two values
+    randInt(min, max) {
+        min = Math.ceil(min);
+        max = Math.floor(max);
+        return Math.floor(Math.random() * (max - min) + min); //The maximum is exclusive and the minimum is inclusive
     }
 
     // Print the matrix as a table to the console
