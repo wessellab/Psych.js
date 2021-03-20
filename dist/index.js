@@ -12,8 +12,8 @@ var ApiClient = function () {
     function ApiClient(subject_number, project_name, demographics, trialseq) {
         _classCallCheck(this, ApiClient);
 
-        this.base_url = 'http://localhost:8888';
-        this.save_route = '/wessellab.php';
+        this.base_url = 'https://cogneurolab.psychology.uiowa.edu';
+        this.save_route = '/php/save.php';
         this.url = this.base_url + this.save_route;
         this.subject_number = subject_number;
         this.trialseq = trialseq;
