@@ -12,7 +12,7 @@ class ApiClient {
 
     save(is_training = false) {
         const data = {
-            trialseq: this.trialseq.values,
+            trialseq: btoa(JSON.stringify(this.trialseq.values)),
             subject_number: this.subject_number,
             project_name: this.project_name,
             demographics: this.demographics,

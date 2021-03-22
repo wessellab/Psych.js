@@ -10,8 +10,7 @@
 
     <!-- Psych.js Imports -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css" integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
-    <!-- <script src='https://psychjs.alecneuro.com/index.min.js'></script> -->
-    <script src='../../cdn/index.min.js'></script>
+    <script src='https://psychjs.alecneuro.com/index.min.js'></script>
     <!-- Psych.js Imports End -->
 
 </head>
@@ -71,12 +70,14 @@
                     right: 80
                 },
                 general: {
-                    blocks: 2,
-                    trials: 36,
+                    blocks: 8,
+                    trials: 72,
                     congruent: 0.5,
                     target: 0.5,
                     rsi: 1 / 3,
-                    maxLength: 72 * 3
+                    maxTrials: function() {
+                        return this.trials * (this.blocks + 2)
+                    }
                 },
                 colors: {
                     bgColor: '#ccc'
@@ -97,163 +98,6 @@
         function insertTrialNums(trialseq, settings) {
             for(let i = 0; i < trialseq.shape()[0]; i++) trialseq.set(i, settings.id.trialnum, i)
             return trialseq
-        }
-
-        function has3inaRow(matrix, settings) {
-
-            let [rows] = matrix.shape();
-
-            for(let i = 0; i < rows; i++) {
-
-                // Don't check the first or last rows
-                if(i !== 0 && i < rows - 1) {
-
-                    let cong_values = [
-                        matrix.get(i, settings.id.cong),
-                        matrix.get(i - 1, settings.id.cong),
-                        matrix.get(i + 1, settings.id.cong)
-                    ]
-
-                    let target_values = [
-                        matrix.get(i, settings.id.target),
-                        matrix.get(i - 1, settings.id.target),
-                        matrix.get(i + 1, settings.id.target)
-                    ]
-
-                    let rsi_values = [
-                        matrix.get(i, settings.id.rsi),
-                        matrix.get(i - 1, settings.id.rsi),
-                        matrix.get(i + 1, settings.id.rsi)
-                    ]
-
-                    // Get all the novelties surrounding the current trial,
-                    // if the sum of all 3 is greater than 1 then we have 2 novelties
-                    // next to each other
-                    let novelties = [
-                        matrix.get(i, settings.id.novelty),
-                        matrix.get(i - 1, settings.id.novelty),
-                        matrix.get(i +1, settings.id.novelty)
-                    ].reduce((a, b) => a + b, 0)
-                    
-                    if(
-                        (cong_values.every((val, i, arr) => val === arr[0]) &&
-                        target_values.every((val, i, arr) => val === arr[0]) &&
-                        rsi_values.every((val, i, arr) => val === arr[0])) ||
-                        novelties > 1
-                    ) {
-                        return true 
-                    }
-
-                }
-
-            }
-
-            return false
-
-        }
-
-        function oddballTooClose(matrix, settings) {
-
-            const oddballs = matrix.getRowsAndColumnsByCriteria(row => row[settings.id.oddball] === 1);
-            const distance = Math.abs(oddballs.get(0, settings.id.trialnum) - oddballs.get(1, settings.id.trialnum));
-            if(distance < 20) {
-                return true
-            } else {
-                return false
-            }
-
-        }
-
-        function oddballOrNoveltyInFirst3(matrix, settings) {
-
-            const s = Matrix.sum([
-                matrix.get(0, settings.id.oddball),
-                matrix.get(1, settings.id.oddball),
-                matrix.get(2, settings.id.oddball),
-                matrix.get(0, settings.id.novelty),
-                matrix.get(1, settings.id.novelty),
-                matrix.get(2, settings.id.novelty),
-            ])
-
-            return s > 0 ? true : false;
-
-        }
-
-        function isNotValidBlock(trialseq, settings) {
-
-            // 1. Cannot have 3 of the same trial type in a row
-            // 2. Cannot have oddballs within 20 trials of one another
-            // 3. Cannot have oddball or novelty in the first 3 trials
-            if(
-                has3inaRow(trialseq, settings) ||
-                oddballTooClose(trialseq, settings) ||
-                oddballOrNoveltyInFirst3(trialseq, settings))
-            {
-                return true
-            } else {
-                return false
-            }
-
-        }
-
-        function isValidNovelty(trialseq, trialnum, i, settings) {
-
-            // Current trial
-            const cong = trialseq.get(trialnum, settings.id.cong);
-            const nextTrialCong = trialseq.get(trialnum + 1, settings.id.cong);
-            const target = trialseq.get(trialnum, settings.id.target);
-            const rsi = trialseq.get(trialnum, settings.id.rsi);
-
-            // Search trial
-            const searchCong = trialseq.get(i, settings.id.cong);
-            const nextSearchCong = trialseq.get(i + 1, settings.id.cong);
-            const searchTarget = trialseq.get(i, settings.id.target);
-            const searchRsi = trialseq.get(i, settings.id.rsi);
-
-            const oddballSum = Matrix.sum([
-                i > 1 ? trialseq.get(i - 1, settings.id.oddball) : 0,
-                i > 2 ? trialseq.get(i - 2, settings.id.oddball) : 0,
-                trialseq.get(i, settings.id.oddball),
-                i + 1 < trialseq.shape()[0] ? trialseq.get(i + 1, settings.id.oddball) : 0,
-                i + 2 < trialseq.shape()[0] ? trialseq.get(i + 2, settings.id.oddball) : 0
-            ]);
-
-            const noveltySum = Matrix.sum([
-                i > 1 ? trialseq.get(i - 1, settings.id.novelty) : 0,
-                i > 2 ? trialseq.get(i - 2, settings.id.novelty) : 0,
-                trialseq.get(i, settings.id.novelty),
-                i + 1 < trialseq.shape()[0] ? trialseq.get(i + 1, settings.id.novelty) : 0,
-                i + 2 < trialseq.shape()[0] ? trialseq.get(i + 2, settings.id.novelty) : 0
-            ]);
-
-            if(
-                oddballSum === 0 &&
-                noveltySum === 0 &&
-                cong === searchCong &&
-                nextTrialCong === nextSearchCong &&
-                target === searchTarget &&
-                rsi === searchRsi
-            ) {
-                return true
-            } else {
-                return false
-            }
-
-        }
-
-        function appendNovelty(trialseq, trialnum, settings) {
-
-            const cong = trialseq.get(trialnum, settings.id.cong);
-            const nextTrialCong = trialseq.get(trialnum + 1, settings.id.cong);
-            const rsi = trialseq.get(trialnum, settings.id.rsi);
-            const target = trialseq.get(trialnum, settings.id.target);
-
-            const matrix = createAppendableTrialseq(settings, cong, nextTrialCong, rsi, target);
-
-            trialseq = Matrix.append([ trialseq, matrix ]);
-
-            return trialseq
-
         }
 
         function createAppendableTrialseq(settings, targetCongruency, targetNextTrialCongruency, targetRsi, targetDirection) {
@@ -293,75 +137,10 @@
                 block.set(idx, settings.id.rsi, targetRsi);
                 block.set(idx, settings.id.target, targetDirection);
 
+                // Set it as a novelty
+                block.set(idx, settings.id.novelty, 1);
+
                 return block
-        }
-
-        function moveOddball(trialseq, trialnum, settings) {
-
-            // Unset the current oddball
-            trialseq.set(trialnum, settings.id.oddball, 0);
-
-            if(trialnum + 2 < trialseq.shape()[0]) {
-                
-                for(let i = trialnum + 2; i < trialseq.shape()[0] - 1; i++) {
-
-                    // If we're outside the current block, then we can just break
-                    if(trialseq.get(trialnum, settings.id.block) !== trialseq.get(i, settings.id.block)) {
-                        console.log(`No more oddball spots available in current block, nothing set`);
-                        break;
-                    }
-
-                    // Check for oddballs/novelties on current trial, before, and after
-                    const s = Matrix.sum([
-                        trialseq.get(i - 1, settings.id.oddball),
-                        trialseq.get(i - 1, settings.id.novelty),
-                        trialseq.get(i, settings.id.oddball),
-                        trialseq.get(i, settings.id.novelty),
-                        i + 1 < trialseq.shape()[0] ? trialseq.get(i + 1, settings.id.oddball) : 0,
-                        i + 1 < trialseq.shape()[0] ? trialseq.get(i + 1, settings.id.novelty) : 0
-                    ])
-
-                    if(s === 0) {
-                        trialseq.set(i, settings.id.oddball, 1);
-                        break;
-                    }
-
-                }
-
-            }
-
-            return trialseq
-
-        }
-
-        function insertNovelty(trialseq, trialnum, settings) {
-
-            if(trialnum + 3 < trialseq.shape()[0]) {
-
-                for(let i = trialnum + 3; i < trialseq.shape()[0] - 1; i++) {
-
-                    if(isValidNovelty(trialseq, trialnum, i, settings)) {
-                        trialseq.set(i, settings.id.novelty, 1);
-
-                        if(trialseq.get(i, settings.id.oddball) === 1) {
-                            trialseq = moveOddball(trialseq, i, settings)
-                        }
-                        return trialseq
-                    }
-    
-                }
-
-                // If we didn't find a place to insert it then we need to append
-                // new trials to the sequence, but only if we haven't exceeded our maximum number of trials
-                if(trialseq.shape()[0] < settings.general.trials * (settings.general.blocks + 1)) {
-                    const nextTrialCongruency = trialseq.get(trialnum, settings.id.cong);
-                    trialseq = appendNovelty(trialseq, trialnum, settings, nextTrialCongruency);
-                }
-
-            }
-
-            return trialseq
-
         }
 
         function shuffle3InaRow(arr) {
@@ -373,12 +152,194 @@
 
         }
 
+        function error(trialseq, i, settings) {
+
+            // We need to cover 3 options
+            // 1. If there isn't enough buffer space for us to search, then append a novelty if
+            //    we have not yet exceeded the max length of the trialseq
+            // 2. If there is enough buffer space, then search the trialseq for a suitable position
+            // 3. If there is no suitable position found by the end of the trialseq, then append a novelty
+            //    if we have not exceeded the max length of the trialseq.
+
+            // Init
+            const [rows] = trialseq.shape();
+            const length = rows - 1;
+
+            // First collect the current trial requirements
+            const cong = trialseq.get(i, settings.id.cong);
+            const rsi = trialseq.get(i, settings.id.rsi);
+            const target = trialseq.get(i, settings.id.target);
+
+            // Now get the next trial congruency, if there is no next trial then just select at random
+            const nextCong = i === length ? Matrix.randInt(1, 3) : trialseq.get(i + 1, settings.id.cong);
+
+            // This is the index of the first search trial
+            var searchTrial = i + 2;
+
+            // 1) If exceeds buffer space and is less than max length of trialseq, append a novelty
+            if(searchTrial >= length && rows < settings.general.maxTrials()) {
+                return appendNovelty(trialseq, i, settings, cong, nextCong, rsi, target);
+            }
+
+            // 2) Has buffer space, should search
+            const nextAvailableNoveltyIndex = findNextNovelty(trialseq, searchTrial, settings, cong, nextCong, rsi, target);
+            if(nextAvailableNoveltyIndex !== null) {
+                trialseq.set(nextAvailableNoveltyIndex, settings.id.novelty, 1);
+                return trialseq;
+            }
+
+            // 3) If nothing was inserted, then as long as we're still under our max trial length,
+            //    append a novelty
+            if(rows < settings.general.maxTrials()) {
+                return appendNovelty(trialseq, i, settings, cong, nextCong, rsi, target);
+            }
+
+            // If no search was found, and we've exceeded our max trial length, just return the trialseq
+            return trialseq
+
+        }
+
+        function appendNovelty(trialseq, trialnum, settings, cong, nextTrialCong, rsi, target) {
+
+            const matrix = createAppendableTrialseq(settings, cong, nextTrialCong, rsi, target);
+
+            // Set the new deadlines
+            const deadlines = Matrix.full(matrix.shape()[0], trialseq.get(trialnum - 1, settings.id.deadline));
+            matrix.setColFromArray(settings.id.deadline, deadlines);
+
+            // Set the block number
+            const blocknums = Matrix.full(matrix.shape()[0], trialseq.get(trialnum - 1, settings.id.blocknum));
+            matrix.setColFromArray(settings.id.blocknum, blocknums);
+
+            // Append to the current trialseq
+            trialseq = Matrix.append([ trialseq, matrix ]);
+
+            // Reset trial numbers
+            trialseq = insertTrialNums(trialseq, settings);
+
+            return trialseq
+
+        }
+
+        function moveOddball(trialseq, searchTrial, settings) {
+
+            // Moves oddball to the next available location relative to the search trial
+            // it is unset from.
+            // 1. Must be within the same block
+            // 2. Must not have any oddballs or novelties before during or after
+
+            // Init
+            const searchTrialBlocknum = trialseq.get(searchTrial, settings.id.blocknum);
+            var nextOddballIdx = searchTrial + 2;
+            const [rows] = trialseq.shape();
+            const length = rows - 1;
+
+            // Don't exceed the trialseq length, and stay within the current block
+            while(nextOddballIdx <= length && searchTrialBlocknum === trialseq.get(nextOddballIdx, settings.id.blocknum)) {
+
+                // This sums the oddballs and novelties surrounding the current next oddball search index
+                const checkSum = Matrix.sum([
+                    trialseq.get(nextOddballIdx - 1, settings.id.novelty),
+                    trialseq.get(nextOddballIdx, settings.id.novelty),
+                    nextOddballIdx + 1 <= rows - 1 ? trialseq.get(nextOddballIdx + 1, settings.id.novelty) : 0,
+                    trialseq.get(nextOddballIdx - 1, settings.id.oddball),
+                    trialseq.get(nextOddballIdx, settings.id.oddball),
+                    nextOddballIdx + 1 <= rows - 1 ? trialseq.get(nextOddballIdx + 1, settings.id.oddball) : 0,
+                ]);
+
+                // If everything is clear, then we can set current index as the new oddball location
+                if(checkSum === 0) {
+                    trialseq.set(nextOddballIdx, settings.id.oddball, 1);
+                    return trialseq;
+                }
+
+                nextOddballIdx += 1;
+
+            }
+
+            return trialseq;
+
+        }
+
+        function findNextNovelty(trialseq, searchTrial, settings, cong, nextCong, rsi, target) {
+
+            // 1. Search each trial starting on searchTrial
+            // 2. If we've reached the second to last trial and there is still no match, exit with 'null'
+
+            const [rows] = trialseq.shape();
+            const length = rows - 1;
+
+            for(searchTrial; searchTrial < length; searchTrial++) {
+
+                // In order for these to be a match, they must meet the following criteria
+                // 1. Congruency, next trial congruency, rsi, target must all match
+                // 2. There must be no novelties before or after the trial
+                // 3. If there is an oddball before, during, or after this trial, move it to the next
+                //    available oddball location.
+
+                // Collect the search trial variables
+                const searchCong = trialseq.get(searchTrial, settings.id.cong);
+                const searchNextCong = trialseq.get(searchTrial + 1, settings.id.cong);
+                const searchRsi = trialseq.get(searchTrial, settings.id.rsi);
+                const searchTarget = trialseq.get(searchTrial, settings.id.target);
+
+                // Check for novelties
+                const noveltySum = Matrix.sum([
+                    trialseq.get(searchTrial - 1, settings.id.novelty),
+                    trialseq.get(searchTrial, settings.id.novelty),
+                    trialseq.get(searchTrial + 1, settings.id.novelty),
+                ]);
+
+                if(
+                    noveltySum === 0 &&
+                    cong === searchCong &&
+                    nextCong === searchNextCong &&
+                    rsi === searchRsi &&
+                    target === searchTarget
+                ) {
+
+                    // We have found a suitable location.
+                    console.log(`Found a suitable novelty location at ${searchTrial}`);
+
+                    // Now check for oddballs
+                    const oddballSum = Matrix.sum([
+                        trialseq.get(searchTrial - 1, settings.id.oddball),
+                        trialseq.get(searchTrial, settings.id.oddball),
+                        trialseq.get(searchTrial + 1, settings.id.oddball)
+                    ])
+                    if(oddballSum > 0) {
+
+                        // We have found an oddball searby
+                        console.log(`We need to move a oddball from index: ${searchTrial}`);
+
+                        // First set them all to off
+                        trialseq.set(searchTrial - 1, settings.id.oddball, 0);
+                        trialseq.set(searchTrial, settings.id.oddball, 0);
+                        trialseq.set(searchTrial + 1, settings.id.oddball, 0);
+
+                        // Now move it to the next suitable oddball location
+                        trialseq = moveOddball(trialseq, searchTrial, settings);
+
+                    }
+
+                    return searchTrial;
+
+                }
+
+            }
+
+            // If nothing gets returned before the loop is done, then we have not found a suitable
+            // trial, so we exit with 'null'
+            return null;
+
+        }
+
         function getOddballIndicies(settings) {
 
             var val1 = Matrix.randInt(0, settings.general.trials);
             var val2 = Matrix.randInt(0, settings.general.trials);
             while(
-                val1 - val2 < 20 ||
+                val1 - val2 < 15 ||
                 val1 === 0 ||
                 val1 === 1 ||
                 val1 === 2 ||
@@ -618,8 +579,9 @@
 
             var shouldPostCheck = false; // flag for checking post-target responses
             let [trials] = trialseq.shape();
-            console.log(trials);
             var i = 0;
+            var errorCount = 0;
+            var noveltyDisplayCount = 0;
             while(i < trialseq.shape()[0]) {
 
                 console.log(`Trial number: ${i}`);
@@ -685,7 +647,8 @@
                         trialseq.set(i, settings.id.rt, response.elapsed); // rt
 
                         // If they made an error, then we need to insert the next valid novelty event
-                        trialseq = insertNovelty(trialseq, i, settings);
+                        trialseq = error(trialseq, i, settings);
+                        errorCount += 1;
                     }
 
                 } else {
@@ -695,6 +658,7 @@
 
                     // If the current trial is an oddball then move it
                     if(trialseq.get(i, settings.id.oddball) === 1) {
+                        trialseq.set(i, settings.id.oddball, 0); // first unset the current oddball because we can't use it
                         trialseq = moveOddball(trialseq, i, settings);
                     }
 
@@ -702,7 +666,7 @@
                     // unset it and find another comparable trial
                     if(trialseq.get(i, settings.id.novelty) === 1) {
                         trialseq.set(i, settings.id.novelty, 0); // first unset current trial
-                        trialseq = insertNovelty(trialseq, i, settings);
+                        trialseq = error(trialseq, i, settings); // treat it the same way as you would an error trial
                     }
 
                 }
@@ -750,6 +714,8 @@
 
                     // Hide novelty
                     Psych.hide([ novelty ]);
+
+                    noveltyDisplayCount += 1;
 
                     // Wait out the rest of the RSI
                     await targetEnd.waitUntil(trialseq.get(i, settings.id.rsi));
@@ -835,12 +801,14 @@
 
                 }
 
-                trialseq.print();
-
                 // Proceed to next trial
                 i++;
 
             }
+
+            trialseq.print();
+            console.log(`Error count: ${errorCount}`);
+            console.log(`Novelty display count: ${noveltyDisplayCount}`);
 
             await Psych.welcome({ text: 'Task complete! Thank you for participating :)' });
 
@@ -848,24 +816,27 @@
 
         
         (async () => {
-            
+
             // await main();
 
-            const subject_number = 999;
-            const project_name = 'NOF';
-            const demographics = {
+            const sn = 'something';
+            const demos = {
                 name: 'Alec',
-                age: 22,
-                gender: 'm'
+                age: 24
             }
-            const training = false;
+            const project_name = 'testing';
             const settings = Settings();
             const trialseq = Trialseq(settings);
-            const client = new ApiClient(subject_number, project_name, demographics, trialseq);
+
+            const client = new ApiClient(sn, project_name, demos, trialseq);
+
             console.log(client);
 
-            await client.save(training);
-            
+            client.save(true)
+                .then(res => console.log(res))
+                .catch(err => console.log(err))
+            console.log('Done!');
+
         })();
 
     </script>

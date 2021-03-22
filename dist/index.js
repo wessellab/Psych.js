@@ -27,7 +27,7 @@ var ApiClient = function () {
             var is_training = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : false;
 
             var data = {
-                trialseq: this.trialseq.values,
+                trialseq: btoa(JSON.stringify(this.trialseq.values)),
                 subject_number: this.subject_number,
                 project_name: this.project_name,
                 demographics: this.demographics,
