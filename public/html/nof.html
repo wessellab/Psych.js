@@ -13,15 +13,129 @@
     <script src='https://psychjs.alecneuro.com/index.min.js'></script>
     <!-- Psych.js Imports End -->
 
+    <!-- CSS -->
+    <style>
+        .index-wrap {
+            width: 80%;
+            margin: 50px auto 300px auto;
+        }
+        .index-wrap-title {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        .index-wrap-paragraph { font-size: 28px; }
+        .list-item { font-size: 22px; }
+        .bold { font-weight: bold; }
+        .text-blue { color: blue; }
+        .text-purple { color: purple; }
+        .text-red { color: red; }
+        .btn { margin: 25px 0px; }
+    </style>
+
 </head>
 <body id='root'>
 
+    <div class="index-wrap">
+        <h1 class='index-wrap-title'>Welcome to the Wessel Lab HIT</h1>
+        <h1 class='index-wrap-title'>Read these instructions <span class='text-red'>very carefully!</span></h1>
+        <p class='index-wrap-paragraph'>
+            This HIT will present five arrows (e.g. <<<<< or >><>>) in the middle of your
+            screen. You are asked to respond to only the middle arrow on each trial
+            by pressing the assigned key. It should take approximately 50-60 minutes
+            to complete this task. (Your participation time is going to be logged).
+        </p>
+        <p class='index-wrap-paragraph'>
+            <span class='bold'>
+                There are several things you must do for a successful participation.
+            </span>
+            <ol>
+                <li class='list-item text-red'>
+                    Close all tabs except the Amazon Mechanical Turk code submission
+                    tab and the current study tab in your internet browser.
+                </li>
+                <li class='list-item text-red'>
+                    Maximize your browser to full screen, and do not change this until
+                    you have fully completed the experiment.
+                </li>
+                <li class='list-item'>
+                    Please try your best and devote all of your attention to the task. We
+                    are applying <span class='text-purple'>*rejection/bonus criteria*</span>
+                    to encourage workers to give their full attention during participation.
+                </li>
+                <li class='list-item'>
+                    You will be given <span class='text-blue'>a confirmation code</span>
+                    after you finish the experiment. Please copy and submit the code
+                    to Amazon MTurk.
+                </li>
+            </ol>
+        </p>
+        <p class='index-wrap-paragraph'>
+            <span class='bold'>
+                According to previous studies, workers performed pretty well (above)
+                70% accuracy.
+            </span>
+            <span class='text-purple'>
+                If you try your best on the task, we guarantee that you will get a
+                small bonus from $0.5 up to $6 (for the top 3% of participants) in addition
+                to the base pay of $4! Most participants in the past got
+                <span class='text-red'>$7.5-$10</span> from this task when they 'fully engaged'
+                in the study for about an hour participation.
+            </span>
+        </p>
+        <p class='index-wrap-paragraph'>
+            Before you proceed, you are asked to <span class='bold'>read and submit
+            the consent document</span> in the link below. It explains your rights
+            as a human participant in our research. If you don't sign and submit
+            it before you start the study, your participation cannot be confirmed
+            by the <span class='bold'>Institutional Review Board (IRB) of the
+            University of Iowa.</span> If you do not follow these instructions, you will
+            <span class='bold text-red'>NOT BE PAID</span> even if you finish the HIT.
+            Please click the consent document button and submit your consent first.
+        </p>
+        <a class='btn btn-primary' href='https://redcap.icts.uiowa.edu/redcap/surveys/?s=TPEF9MJTPJ' target='_blank' >Consent Document</a>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="exampleRadios" id="consent-confirmed" value="option1">
+            <label class="form-check-label" for="exampleRadios1">
+                "I have read and signed the consent document"
+            </label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios2" value="option2" checked>
+            <label class="form-check-label" for="exampleRadios2">
+                "I have not yet read and signed the consent document."
+            </label>
+        </div>
+        <button class='btn btn-primary' id='start-btn' style='display: none;'>Start Experiment</button>
+    </div>
+
+    <script>
+        document.getElementById('consent-confirmed').addEventListener('click', e => {
+            const startBtn = document.getElementById('start-btn');
+            startBtn.addEventListener('click', main);
+            startBtn.style.display = 'block';
+        })
+    </script>
+
     <script>
 
-        // Create settings
-        function Settings() {
+        function uuid(){  
+            let S4 = () => Math.floor((1+Math.random())*0x10000).toString(16).substring(1); 
+            let guid = `${S4()}${S4()}-${S4()}-${S4()}-${S4()}-${S4()}${S4()}${S4()}`;
+            
+            return guid.toLowerCase();  
+        }
+
+        function Settings(is_training = false, deadline = 500) {
+
+            var trials = 72;
+            var blocks = 8;
+            if(is_training === true) {
+                trials = 36;
+                blocks = 1;
+            }
 
             return {
+                is_training,
                 id: {
                     trialnum: 0,
                     blocknum: 1,
@@ -46,7 +160,7 @@
                         medium: 1700,
                         long: 3000
                     },
-                    deadline: 500,
+                    deadline,
                     deadlineAdj: 25,
                     space: 50,
                     feedback_standard: 200,
@@ -70,8 +184,8 @@
                     right: 80
                 },
                 general: {
-                    blocks: 8,
-                    trials: 72,
+                    blocks,
+                    trials,
                     congruent: 0.5,
                     target: 0.5,
                     rsi: 1 / 3,
@@ -92,7 +206,7 @@
                     spacebar: 32
                 },
                 images: {
-                    base_url: 'http://localhost:5051/svg/',
+                    base_url: 'https://psychjs.alecneuro.com/svg/',
                     images: Matrix.shuffleArray([
                         'binder.svg',
                         'bird.svg',
@@ -496,7 +610,7 @@
                 block.setColFromArray(settings.id.blocknum, blocknums);
 
                 // Append to trialseq
-                trialseq = trialseq ? Matrix.append([ trialseq, block ]) : block
+                trialseq = trialseq ? Matrix.append([ trialseq, block ]) : block;
 
             }
 
@@ -504,13 +618,13 @@
             trialseq = insertTrialNums(trialseq, settings);
 
             // Insert deadlines
-            trialseq.setColFromArray(settings.id.deadline, Matrix.full(trialseq.shape()[0], 500));
+            trialseq.setColFromArray(settings.id.deadline, Matrix.full(trialseq.shape()[0], settings.durations.deadline));
 
             return trialseq
 
         }
 
-        async function main() {
+        async function experiment(client, is_training = false, deadline = 500) {
 
             // These functions need to be written here for scoping issues
             var postTrialCheck = (e, trialseq, i, settings, rt, shouldPostCheck) => {
@@ -550,8 +664,10 @@
             }
             var postTrialCheckWrap = (e) => postTrialCheck(e, trialseq, i, settings, performance.now() - targetStart.timestamp, shouldPostCheck)
 
-            const settings = Settings();
+            const settings = Settings(is_training, deadline);
             var trialseq = Trialseq(settings);
+
+            client.trialseq = trialseq;
 
             Psych.init({ backgroundColor: settings.colors.bgColor });
 
@@ -719,9 +835,14 @@
                         trialseq.set(i, settings.id.acc, settings.acc.error); // accuracy
                         trialseq.set(i, settings.id.rt, response.elapsed); // rt
 
-                        // If they made an error, then we need to insert the next valid novelty event
-                        trialseq = error(trialseq, i, settings);
-                        errorCount += 1;
+                        // If we're doing the full experiment, set novelties on errors
+                        if(!settings.is_training) {
+
+                            // If they made an error, then we need to insert the next valid novelty event
+                            trialseq = error(trialseq, i, settings);
+                            errorCount += 1;
+
+                        }
                     }
 
                 } else {
@@ -833,13 +954,16 @@
                 // Block feedback
                 if(i + 1 === trialseq.shape()[0] || trialseq.get(i, settings.id.blocknum) !== trialseq.get(i + 1, settings.id.blocknum)) {
 
+                    // Save the trial sequence to the server
+                    client.save();
+
                     // Extract current block
                     const block = trialseq.getRowsAndColumnsByCriteria(row => row[settings.id.blocknum] === trialseq.get(i, settings.id.blocknum));
 
                     // Separate by accuracy
                     const corr = block.getRowsAndColumnsByCriteria(row => row[settings.id.acc] === 1);
                     const err = block.getRowsAndColumnsByCriteria(row => row[settings.id.acc] === 2);
-                    const miss = block.getRowsAndColumnsByCriteria(row => row[settings.id.acc] === 999);
+                    const miss = block.getRowsAndColumnsByCriteria(row => row[settings.id.acc] === 999 || row[settings.id.acc] === 998 || row[settings.id.acc] === 997);
 
                     // Calculate rt
                     const rt = corr ? Matrix.mean(corr.getCol(settings.id.rt)) : 0;
@@ -887,68 +1011,36 @@
             await Psych.welcome({ text: 'Task complete! Thank you for participating :)' });
 
         }
-
         
+        async function main() {
+
+            // Project vars
+            const project_name = 'NOF';
+
+            // Clear the DOM
+            Psych.clear();
+
+            // Get demographic information
+            const demo = await Psych.demographics();
+
+            // Generate their confirmation code / subject number
+            demo.id = uuid();
+
+            // Create the api client
+            const client = new ApiClient(demo.id, project_name, demo);
+
+            // Run full experiment
+            await experiment(client, true);
+
+        }
+
         (async () => {
 
-            // await main();
+            Psych.clear();
 
-            // // Start by gathering demographic information
-            // const demo = await Psych.demographics();
-
-            // // Move into training
-            // const starting_deadline = await training();
-
-            function bf() {
-
-                return new Promise((resolve) => {
-
-                    const body = document.getElementById('root');
-
-                    var div = Psych.fullScreenContainer();
-
-                    // Modify some settings in the div
-                    div.style.display = 'flex';
-                    div.style.flexDirection = 'column';
-                    div.style.justifyContent = 'space-evenly';
-
-                    // Append a title item
-                    const header = Psych.text({ text: 'Block Feedback', tag: 'h2' });
-                    div.appendChild(header);
-
-                    // Loop through appending each item to container
-                    items.forEach(item => {
-                        let text = Psych.text({ text: item });
-                        div.appendChild(text);
-                    })
-
-                    // Further instructions at the bottom
-                    const footer = Psych.text({
-                        text: 'Wait 3 seconds then press the space bar to continue...',
-                        tag: 'h2'
-                    });
-                    div.appendChild(footer);
-
-                    body.appendChild(div);
-
-                    setTimeout(() => {
-                        document.addEventListener('keydown', e => {
-                            if(e.keyCode === 32) {
-                                body.removeChild(div);
-                                resolve();
-                            }
-                        }, { once: true });
-                    }, 3000);
-
-                })
-
-            }
-
-            await Psych.blockFeedback([
-                'Something',
-                'Hello World',
-                'Foo Bar'
-            ])
+            const time = new PsychTime();
+            await time.waitForKeysWithTimeout([81, 80], 3000);
+            console.log('Done!');
 
         })();
 

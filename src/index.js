@@ -116,21 +116,25 @@ class PsychTime {
 
         return new Promise((resolve) => {
 
-            document.addEventListener('keydown', e => {
+            const setListener = () => {
+                document.addEventListener('keydown', e => {
+                    if(e.keyCode === keyCode) {
+                        const endTime = performance.now();
+                        resolve({
+                            startTime: this.timestamp,
+                            endTime,
+                            elapsed: this.elapsed(),
+                            keyCode: e.keyCode,
+                            keyPressed: true,
+                            psychTime: new PsychTime()
+                        });
+                    } else {
+                        setListener();
+                    }
+                }, { once: true });
+            }
 
-                if(e.keyCode === keyCode) {
-                    const endTime = performance.now();
-                    resolve({
-                        startTime: this.timestamp,
-                        endTime,
-                        elapsed: this.elapsed(),
-                        keyCode: e.keyCode,
-                        keyPressed: true,
-                        psychTime: new PsychTime()
-                    });
-                }
-
-            }, { once: true });
+            setListener();
 
         })
 
@@ -140,22 +144,25 @@ class PsychTime {
 
         return new Promise((resolve) => {
 
-            document.addEventListener('keydown', e => {
+            const setListener = () => {
+                document.addEventListener('keydown', e => {
+                    if(anyKeysValid(e.keyCode, keyCodes)) {
+                        const endTime = performance.now();
+                        resolve({
+                            startTime: this.timestamp,
+                            endTime,
+                            elapsed: this.elapsed(),
+                            keyCode: e.keyCode,
+                            keyPressed: true,
+                            psychTime: new PsychTime()
+                        });
+                    } else {
+                        setListener();
+                    }
+                }, { once: true });
+            }
 
-                if(anyKeysValid(e.keyCode, keyCodes)) {
-                    const endTime = performance.now();
-                    resolve({
-                        startTime: this.timestamp,
-                        endTime,
-                        elapsed: this.elapsed(),
-                        keyCode: e.keyCode,
-                        keyPressed: true,
-                        psychTime: new PsychTime()
-                    });
-                    return;
-                }
-
-            }, { once: true });
+            setListener();
 
         })
 

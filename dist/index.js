@@ -144,20 +144,25 @@ var PsychTime = function () {
 
             return new Promise(function (resolve) {
 
-                document.addEventListener('keydown', function (e) {
+                var setListener = function setListener() {
+                    document.addEventListener('keydown', function (e) {
+                        if (e.keyCode === keyCode) {
+                            var endTime = performance.now();
+                            resolve({
+                                startTime: _this2.timestamp,
+                                endTime: endTime,
+                                elapsed: _this2.elapsed(),
+                                keyCode: e.keyCode,
+                                keyPressed: true,
+                                psychTime: new PsychTime()
+                            });
+                        } else {
+                            setListener();
+                        }
+                    }, { once: true });
+                };
 
-                    if (e.keyCode === keyCode) {
-                        var endTime = performance.now();
-                        resolve({
-                            startTime: _this2.timestamp,
-                            endTime: endTime,
-                            elapsed: _this2.elapsed(),
-                            keyCode: e.keyCode,
-                            keyPressed: true,
-                            psychTime: new PsychTime()
-                        });
-                    }
-                }, { once: true });
+                setListener();
             });
         }
     }, {
@@ -170,21 +175,25 @@ var PsychTime = function () {
 
             return new Promise(function (resolve) {
 
-                document.addEventListener('keydown', function (e) {
+                var setListener = function setListener() {
+                    document.addEventListener('keydown', function (e) {
+                        if (anyKeysValid(e.keyCode, keyCodes)) {
+                            var endTime = performance.now();
+                            resolve({
+                                startTime: _this3.timestamp,
+                                endTime: endTime,
+                                elapsed: _this3.elapsed(),
+                                keyCode: e.keyCode,
+                                keyPressed: true,
+                                psychTime: new PsychTime()
+                            });
+                        } else {
+                            setListener();
+                        }
+                    }, { once: true });
+                };
 
-                    if (anyKeysValid(e.keyCode, keyCodes)) {
-                        var endTime = performance.now();
-                        resolve({
-                            startTime: _this3.timestamp,
-                            endTime: endTime,
-                            elapsed: _this3.elapsed(),
-                            keyCode: e.keyCode,
-                            keyPressed: true,
-                            psychTime: new PsychTime()
-                        });
-                        return;
-                    }
-                }, { once: true });
+                setListener();
             });
         }
     }, {
