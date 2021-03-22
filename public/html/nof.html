@@ -90,6 +90,90 @@
                     q: 81,
                     p: 80,
                     spacebar: 32
+                },
+                images: {
+                    base_url: 'http://localhost:5051/svg/',
+                    images: Matrix.shuffleArray([
+                        'binder.svg',
+                        'bird.svg',
+                        'booby.svg',
+                        'bunny.svg',
+                        'cabinet.svg',
+                        'car.svg',
+                        'chair.svg',
+                        'cittern.svg',
+                        'cloud.svg',
+                        'couch.svg',
+                        'dog.svg',
+                        'fan.svg',
+                        'goat.svg',
+                        'hands.svg',
+                        'hen.svg',
+                        'leaf.svg',
+                        'lemon.svg',
+                        'microscope.svg',
+                        'mug.svg',
+                        'pigeon.svg',
+                        'shoe.svg',
+                        'truck.svg',
+                        'umbrella.svg',
+                        'vaccume.svg',
+                        'violin.svg',
+                        'writing.svg'
+                    ]),
+                    current_img: 0,
+                    image_refs: [],
+                    disp_curr_img: function() {
+                        this.image_refs[this.current_img].style.display = 'flex';
+                        return new PsychTime();
+                    },
+                    hide_curr_img: function() {
+                        this.image_refs[this.current_img].style.display = 'none';
+                        return new PsychTime();
+                    },
+                    next: function() {
+                        this.current_img += 1;
+                        if(this.current_img >= this.images.length) { this.current_img = 0; }
+                    },
+                    total_images: function() { return this.images.length },
+                    image_urls: function() {
+                        var images = {};
+                        for(let img of this.images) { images[img] = this.base_url + img; }
+                        return images;
+                    },
+                    create_image: function(id, url) {
+
+                        // Wrapper container
+                        const div = document.createElement('div');
+                        div.style.height = '100vh';
+                        div.style.width = '100vw';
+                        div.style.position = 'absolute';
+                        div.style.justifyContent = 'center';
+                        div.style.alignItems = 'center';
+                        div.style.display = 'none';
+
+                        // Image container
+                        const img = document.createElement('img');
+                        img.src = url;
+                        img.style.height = '300px';
+                        img.style.width = '300px';
+
+                        // Bind
+                        div.appendChild(img);
+
+                        return div
+
+                    },
+                    create_images: function() {
+
+                        const images_urls = this.image_urls();
+                        for(let [key, value] of Object.entries(images_urls)) {
+                            let img = this.create_image(key, value);
+                            document.body.appendChild(img);
+                            this.image_refs.push(img);
+                        }
+
+                    }
                 }
             }
 
@@ -299,7 +383,6 @@
                 ) {
 
                     // We have found a suitable location.
-                    console.log(`Found a suitable novelty location at ${searchTrial}`);
 
                     // Now check for oddballs
                     const oddballSum = Matrix.sum([
@@ -310,7 +393,6 @@
                     if(oddballSum > 0) {
 
                         // We have found an oddball searby
-                        console.log(`We need to move a oddball from index: ${searchTrial}`);
 
                         // First set them all to off
                         trialseq.set(searchTrial - 1, settings.id.oddball, 0);
@@ -542,20 +624,6 @@
                 backgroundColor: settings.colors.bgColor
             })
 
-            // Novelty
-            const novelty = Psych.divWithText({
-                text: 'NOVELTY!',
-                color: '#FF0000',
-                letterSpacing: '1px',
-                fontSize: '3em'
-            }, {
-                top: `${dims.height / 2}px`,
-                left: `${dims.width / 2}px`,
-                width: '100%',
-                height: '100px',
-                backgroundColor: settings.colors.bgColor
-            })
-
             // Miss feedback
             const missFeedback = Psych.divWithText({
                 text: 'MISS!',
@@ -571,9 +639,14 @@
                 backgroundColor: settings.colors.bgColor
             })
 
-            const screenItems = [ target, triangle, oddball, correctFeedback, incorrectFeedback, novelty, missFeedback ];
+            // Gather the screen items loaded with Psych.js
+            const screenItems = [ target, triangle, oddball, correctFeedback, incorrectFeedback, missFeedback ];
 
+            // Prepare all images to the screen
             Psych.prepare(screenItems);
+
+            // Load all the novelty images to the screen
+            settings.images.create_images();
 
             await Psych.welcome();
 
@@ -707,13 +780,14 @@
                     // NOVELTY
 
                     // Novelty event
-                    const noveltyStart = Psych.display([ novelty ]);
+                    const noveltyStart = settings.images.disp_curr_img();
 
                     // Wait duration of the novelty
                     await noveltyStart.waitUntil(settings.durations.novelty);
 
                     // Hide novelty
-                    Psych.hide([ novelty ]);
+                    settings.images.hide_curr_img();
+                    settings.images.next();
 
                     noveltyDisplayCount += 1;
 
@@ -819,23 +893,62 @@
 
             // await main();
 
-            const sn = 'something';
-            const demos = {
-                name: 'Alec',
-                age: 24
+            // // Start by gathering demographic information
+            // const demo = await Psych.demographics();
+
+            // // Move into training
+            // const starting_deadline = await training();
+
+            function bf() {
+
+                return new Promise((resolve) => {
+
+                    const body = document.getElementById('root');
+
+                    var div = Psych.fullScreenContainer();
+
+                    // Modify some settings in the div
+                    div.style.display = 'flex';
+                    div.style.flexDirection = 'column';
+                    div.style.justifyContent = 'space-evenly';
+
+                    // Append a title item
+                    const header = Psych.text({ text: 'Block Feedback', tag: 'h2' });
+                    div.appendChild(header);
+
+                    // Loop through appending each item to container
+                    items.forEach(item => {
+                        let text = Psych.text({ text: item });
+                        div.appendChild(text);
+                    })
+
+                    // Further instructions at the bottom
+                    const footer = Psych.text({
+                        text: 'Wait 3 seconds then press the space bar to continue...',
+                        tag: 'h2'
+                    });
+                    div.appendChild(footer);
+
+                    body.appendChild(div);
+
+                    setTimeout(() => {
+                        document.addEventListener('keydown', e => {
+                            if(e.keyCode === 32) {
+                                body.removeChild(div);
+                                resolve();
+                            }
+                        }, { once: true });
+                    }, 3000);
+
+                })
+
             }
-            const project_name = 'testing';
-            const settings = Settings();
-            const trialseq = Trialseq(settings);
 
-            const client = new ApiClient(sn, project_name, demos, trialseq);
-
-            console.log(client);
-
-            client.save(true)
-                .then(res => console.log(res))
-                .catch(err => console.log(err))
-            console.log('Done!');
+            await Psych.blockFeedback([
+                'Something',
+                'Hello World',
+                'Foo Bar'
+            ])
 
         })();
 

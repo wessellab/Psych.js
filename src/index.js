@@ -486,14 +486,18 @@ class Psych {
 
             body.appendChild(div);
 
-            setTimeout(() => {
+            const setListener = () => {
                 document.addEventListener('keydown', e => {
                     if(e.keyCode === 32) {
                         body.removeChild(div);
                         resolve();
+                    } else {
+                        setListener();
                     }
                 }, { once: true });
-            }, 3000);
+            }
+
+            setTimeout(() => setListener(), 3000);
 
         })
 
