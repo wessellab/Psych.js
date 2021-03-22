@@ -1004,11 +1004,10 @@
 
             }
 
-            trialseq.print();
-            console.log(`Error count: ${errorCount}`);
-            console.log(`Novelty display count: ${noveltyDisplayCount}`);
-
-            await Psych.welcome({ text: 'Task complete! Thank you for participating :)' });
+            const block = trialseq.getRowsAndColumnsByCriteria(row => row[settings.id.blocknum] === trialseq.get(i, settings.id.blocknum));
+            const err = block.getRowsAndColumnsByCriteria(row => row[settings.id.acc] === 2);
+            const err_pct = err ? parseInt((err.shape()[0] / block.shape()[0]) * 100) : 0;
+            return err_pct;
 
         }
         
@@ -1029,20 +1028,18 @@
             // Create the api client
             const client = new ApiClient(demo.id, project_name, demo);
 
-            // Run full experiment
-            await experiment(client, true);
+            // Run training
+            var error_rate = await experiment(client, false);
+
+            // // Keep running training until they pass 75% error rate
+            // while(error_rate > 25) {
+            //     error_rate = await experiment(client, true);
+            // }
+
+            // Finishing screen
+            await Psych.welcome({ text: `Task complete! Thank you for participating... here is your confirmation code: ${demo.id}` });
 
         }
-
-        (async () => {
-
-            Psych.clear();
-
-            const time = new PsychTime();
-            await time.waitForKeysWithTimeout([81, 80], 3000);
-            console.log('Done!');
-
-        })();
 
     </script>
 
