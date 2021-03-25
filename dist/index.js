@@ -1620,15 +1620,16 @@ var Matrix = function () {
             var rows = matrix.length;
             var columns = matrix[0].length;
 
-            // Build new matrix
-            var m = new Matrix(rows, columns);
+            // Validate matrix dims
             for (var r = 0; r < rows; r++) {
                 // Validate that column dims are always equal
                 if (matrix[r].length !== columns) {
                     throw new Error('Matrix dimensions are not equivalent.');
                 }
-                m.setRowFromArray(r, matrix[r]);
             }
+
+            var m = Matrix();
+            m.values = matrix;
 
             return m;
         }
