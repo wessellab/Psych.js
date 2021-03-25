@@ -1628,7 +1628,7 @@ var Matrix = function () {
                 }
             }
 
-            var m = Matrix();
+            var m = new Matrix();
             m.values = matrix;
 
             return m;

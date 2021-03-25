@@ -1356,7 +1356,7 @@ class Matrix {
             }
         }
 
-        const m = Matrix();
+        const m = new Matrix();
         m.values = matrix;
 
         return m;
