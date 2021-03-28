@@ -1,5 +1,4 @@
 const express = require('express');
-const bodyParser = require('body-parser');
 const path = require('path');
 const cors = require('cors');
 require('dotenv').config();
@@ -16,11 +15,7 @@ app.use(cors());
 app.use(express.static(path.join(process.cwd(), 'cdn')));
 app.use(express.static(path.join(process.cwd(), 'public')));
 
-// Body Parser
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
-
-app.get('/test', async (req, res) => {
+app.get('/twitter/testing', async (req, res) => {
 
     return res.json({ msg: 'Working!' })
 
