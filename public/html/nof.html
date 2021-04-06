@@ -1049,6 +1049,8 @@
             // Get demographic information
             const demo = await Psych.demographics();
 
+            Psych.init();
+
             // Generate their confirmation code / subject number
             demo.id = uuid();
 
@@ -1131,7 +1133,6 @@
             const startBtn = document.getElementById('start-btn');
             startBtn.addEventListener('click', main);
             startBtn.style.display = 'block';
-            Psych.init();
         })
     </script>
 
