@@ -109,19 +109,6 @@
     </div>
 
     <script>
-        // document.getElementById('consent-confirmed').addEventListener('click', e => {
-        //     const startBtn = document.getElementById('start-btn');
-        //     startBtn.addEventListener('click', main);
-        //     startBtn.style.display = 'block';
-        // })
-
-        Psych.clear();
-
-        const m = Matrix.initFromMatrix([[1, 1, 1], [2, 2, 2]]);
-        console.log(m);
-    </script>
-
-    <script>
 
         function uuid(){  
             let S4 = () => Math.floor((1+Math.random())*0x10000).toString(16).substring(1); 
@@ -574,50 +561,74 @@
 
         }
 
-        function Trialseq(settings) {
+        function createTrialseq(settings) {
 
-            var trialseq = undefined;
+            // Clear the screen and init the loader
+            Psych.clear();
+            drawLoader();
 
-            for(let ib = 0; ib < settings.general.blocks; ib++) {
+            return new Promise((resolve, reject) => {
 
-                const block = new Matrix(settings.general.trials, settings.id.cols());
+                var trialseq = undefined;
 
-                const cong_total = settings.general.trials * settings.general.congruent;
-                const target_total = settings.general.trials * settings.general.target;
-                const rsi_total = settings.general.trials * settings.general.rsi;
+                var ib = 0;
+                let iv = setInterval(() => {
+                    console.log(ib);
 
-                const congruent = shuffle3InaRow([
-                    ...Matrix.full(cong_total, 1),
-                    ...Matrix.full(cong_total, 2)
-                ])
+                    const block = new Matrix(settings.general.trials, settings.id.cols());
 
-                const target = shuffle3InaRow([
-                    ...Matrix.full(target_total, 1),
-                    ...Matrix.full(target_total, 2)
-                ])
+                    const cong_total = settings.general.trials * settings.general.congruent;
+                    const target_total = settings.general.trials * settings.general.target;
+                    const rsi_total = settings.general.trials * settings.general.rsi;
 
-                const rsi = shuffle3InaRow([
-                    ...Matrix.full(rsi_total, settings.durations.rsi.short),
-                    ...Matrix.full(rsi_total, settings.durations.rsi.medium),
-                    ...Matrix.full(rsi_total, settings.durations.rsi.long)
-                ])
+                    const congruent = shuffle3InaRow([
+                        ...Matrix.full(cong_total, 1),
+                        ...Matrix.full(cong_total, 2)
+                    ])
 
-                block.setColFromArray(settings.id.cong, congruent);
-                block.setColFromArray(settings.id.target, target);
-                block.setColFromArray(settings.id.rsi, rsi);
+                    const target = shuffle3InaRow([
+                        ...Matrix.full(target_total, 1),
+                        ...Matrix.full(target_total, 2)
+                    ])
 
-                // Set the oddball locations
-                const oddballs = getOddballsForBlock(block, settings);
-                block.setColFromArray(settings.id.oddball, oddballs);
+                    const rsi = shuffle3InaRow([
+                        ...Matrix.full(rsi_total, settings.durations.rsi.short),
+                        ...Matrix.full(rsi_total, settings.durations.rsi.medium),
+                        ...Matrix.full(rsi_total, settings.durations.rsi.long)
+                    ])
 
-                // Set block number
-                const blocknums = Matrix.full(settings.general.trials, ib);
-                block.setColFromArray(settings.id.blocknum, blocknums);
+                    block.setColFromArray(settings.id.cong, congruent);
+                    block.setColFromArray(settings.id.target, target);
+                    block.setColFromArray(settings.id.rsi, rsi);
 
-                // Append to trialseq
-                trialseq = trialseq ? Matrix.append([ trialseq, block ]) : block;
+                    // Set the oddball locations
+                    const oddballs = getOddballsForBlock(block, settings);
+                    block.setColFromArray(settings.id.oddball, oddballs);
 
-            }
+                    // Set block number
+                    const blocknums = Matrix.full(settings.general.trials, ib);
+                    block.setColFromArray(settings.id.blocknum, blocknums);
+
+                    // Append to trialseq
+                    trialseq = trialseq ? Matrix.append([ trialseq, block ]) : block;
+                
+                    // Increase block counter
+                    ib += 1;
+
+                    // Update the loader on screen
+                    updateLoader();
+
+                    // Exit condition
+                    if(ib === settings.general.blocks) { Psych.clear(); clearInterval(iv); resolve(trialseq); }
+
+                }, 1000);
+
+            })
+        }
+
+        async function Trialseq(settings) {
+
+            var trialseq = await createTrialseq(settings);
 
             // Insert trial nums
             trialseq = insertTrialNums(trialseq, settings);
@@ -669,8 +680,9 @@
             }
             var postTrialCheckWrap = (e) => postTrialCheck(e, trialseq, i, settings, performance.now() - targetStart.timestamp, shouldPostCheck)
 
+            console.log(`Training: ${is_training}`);
             const settings = Settings(is_training, deadline);
-            var trialseq = Trialseq(settings);
+            var trialseq = await Trialseq(settings);
 
             client.trialseq = trialseq;
 
@@ -1009,10 +1021,20 @@
 
             }
 
-            const block = trialseq.getRowsAndColumnsByCriteria(row => row[settings.id.blocknum] === trialseq.get(i, settings.id.blocknum));
+            // Calculate error percent
+            const block = trialseq.getRowsAndColumnsByCriteria(row => row[settings.id.blocknum] === trialseq.get(i - 1, settings.id.blocknum));
             const err = block.getRowsAndColumnsByCriteria(row => row[settings.id.acc] === 2);
             const err_pct = err ? parseInt((err.shape()[0] / block.shape()[0]) * 100) : 0;
-            return err_pct;
+
+            // Calculate 75% quartile of MAD
+            const corr = block.getRowsAndColumnsByCriteria(row => row[settings.id.rt] > 0);
+            console.log(corr);
+            const rts = corr.getCol(settings.id.rt);
+            console.log(rts);
+            const mean_absolute_deviation = getStartingDuration(rts);
+            console.log(mean_absolute_deviation);
+
+            return { err_pct, mean_absolute_deviation };
 
         }
         
@@ -1033,19 +1055,84 @@
             // Create the api client
             const client = new ApiClient(demo.id, project_name, demo);
 
-            // Run training
-            var error_rate = await experiment(client, false);
+            // Keep running training until they pass 75% error rate
+            do {
 
-            // // Keep running training until they pass 75% error rate
-            // while(error_rate > 25) {
-            //     error_rate = await experiment(client, true);
-            // }
+                // Run training
+                var results = await experiment(client, true);
+                console.log(`Error rate: ${results.err_pct}`);
+
+            } while(results.err_pct > 25);
+
+            console.log(results);
+            await experiment(client, false, results.mean_absolute_deviation);
 
             // Finishing screen
             await Psych.welcome({ text: `Task complete! Thank you for participating... here is your confirmation code: ${demo.id}` });
 
         }
 
+        function drawLoader() {
+
+            const loader = Psych.divWithText({
+                color: '#333',
+                fontSize: '1.5em',
+                text: 'Loading...',
+                fontWeight: 'bolder'
+            }, {
+                backgroundColor: 'transparent',
+                height: '100px',
+                width: '100%'
+            })
+
+            loader.firstChild.id = 'loader'
+
+            Psych.prepare([ loader ]);
+            Psych.display([ loader ]);
+
+        }
+
+        function updateLoader() {
+
+            const loader = document.getElementById('loader');
+            const lastNum = loader.innerText.replace('Loading', '').length;
+
+            if(lastNum === 3) {
+                loader.innerText = 'Loading.';
+                return
+            } else {
+                const dots = lastNum + 1;
+                var str = '';
+                for(let i = 0; i < dots; i++) {str += '.'}
+                loader.innerText = 'Loading' + str;
+                return
+            }
+
+        }
+
+        function mean(arr) {
+            return (arr.reduce((a, b) => a + b, 0)) / arr.length
+        }
+
+        function mad(arr) {
+            const m = mean(arr);
+            const n = arr.length;
+            return mean(arr.map(i => Math.abs(i - m))) / n;
+        }
+
+        function getStartingDuration(rts) {
+            return mean(rts) + (2.5 * mad(rts));
+        }
+
+    </script>
+
+    <script>
+        document.getElementById('consent-confirmed').addEventListener('click', e => {
+            const startBtn = document.getElementById('start-btn');
+            startBtn.addEventListener('click', main);
+            startBtn.style.display = 'block';
+            Psych.init();
+        })
     </script>
 
 </body>
