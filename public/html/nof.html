@@ -1061,10 +1061,13 @@
             const client = new ApiClient(demo.id, project_name, demo);
 
             // Keep running training until they pass 75% error rate
+            var mad = 550;
+            var results;
             do {
 
                 // Run training
-                var results = await experiment(client, true);
+                results = await experiment(client, true, mad);
+                mad = results.mean_absolute_deviation;
 
             } while(results.err_pct > 20 || results.miss_pct > 20);
 
