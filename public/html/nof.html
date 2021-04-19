@@ -1025,6 +1025,8 @@
             const block = trialseq.getRowsAndColumnsByCriteria(row => row[settings.id.blocknum] === trialseq.get(i - 1, settings.id.blocknum));
             const err = block.getRowsAndColumnsByCriteria(row => row[settings.id.acc] === 2);
             const err_pct = err ? parseInt((err.shape()[0] / block.shape()[0]) * 100) : 0;
+            const miss = block.getRowsAndColumnsByCriteria(row => row[settings.id.acc] === settings.acc.miss || row[settings.id.acc] === settings.acc.postTrialCorrect || row[settings.id.acc] === settings.acc.postTrialIncorrect)
+            const miss_pct = miss ? parseInt((miss.shape()[0] / block.shape()[0]) * 100) : 0;
 
             // Calculate 75% quartile of MAD
             const corr = block.getRowsAndColumnsByCriteria(row => row[settings.id.rt] > 0);
@@ -1033,8 +1035,9 @@
             console.log(rts);
             const mean_absolute_deviation = getStartingDuration(rts);
             console.log(mean_absolute_deviation);
+            console.log(miss_pct);
 
-            return { err_pct, mean_absolute_deviation };
+            return { err_pct, mean_absolute_deviation, miss_pct };
 
         }
         
@@ -1064,7 +1067,7 @@
                 var results = await experiment(client, true);
                 console.log(`Error rate: ${results.err_pct}`);
 
-            } while(results.err_pct > 25);
+            } while(results.err_pct > 20 || results.miss_pct > 20);
 
             console.log(results);
             await experiment(client, false, results.mean_absolute_deviation);
