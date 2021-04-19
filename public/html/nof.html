@@ -1131,7 +1131,13 @@
         }
 
         function getStartingDuration(rts) {
-            return mean(rts) + (2.5 * mad(rts));
+            return mean(rts) + (2.5 * std(rts));
+        }
+
+        function std(array) {
+            const n = array.length - 1
+            const mean = array.reduce((a, b) => a + b) / n
+            return Math.sqrt(array.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n)
         }
 
     </script>
