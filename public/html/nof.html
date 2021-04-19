@@ -117,7 +117,7 @@
             return guid.toLowerCase();  
         }
 
-        function Settings(is_training = false, deadline = 500) {
+        function Settings(is_training = false, deadline = 550) {
 
             var trials = 72;
             var blocks = 8;
@@ -640,7 +640,7 @@
 
         }
 
-        async function experiment(client, is_training = false, deadline = 500) {
+        async function experiment(client, is_training = false, deadline = 550) {
 
             // These functions need to be written here for scoping issues
             var postTrialCheck = (e, trialseq, i, settings, rt, shouldPostCheck) => {
@@ -1065,11 +1065,13 @@
 
                 // Run training
                 var results = await experiment(client, true);
-                console.log(`Error rate: ${results.err_pct}`);
 
             } while(results.err_pct > 20 || results.miss_pct > 20);
 
-            console.log(results);
+            // Run follow up training
+            await experiment(client, true, results.mean_absolute_deviation);
+
+            // Run full experiment
             await experiment(client, false, results.mean_absolute_deviation);
 
             // Finishing screen
