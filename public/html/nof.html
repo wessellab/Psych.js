@@ -781,6 +781,15 @@
             // Load all the novelty images to the screen
             settings.images.create_images();
 
+            // Prescreen
+            var text = '';
+            if(is_training) {
+                text = 'Welcome to the training, you must have <20% errors and <20% misses to move on to the full experiment. Press the space bar to move on...';
+            } else {
+                text = 'You are about to begin the full experiment. Press the spacebar to move on...';
+            }
+            await Psych.welcome({ text }, 1500)
+
             await Psych.welcome();
 
             var shouldPostCheck = false; // flag for checking post-target responses
@@ -819,7 +828,7 @@
                 var targetStart = Psych.display([ target ]);
 
                 // Wait 500ms for a response
-                const response = await targetStart.waitForKeysWithTimeout(Object.values(settings.keys), settings.durations.deadline);
+                const response = await targetStart.waitForKeysWithTimeout(Object.values(settings.keys), trialseq.get(i, settings.id.deadline));
 
                 // There was either a response, or the timeout expired.
                 // As long as this is not an oddball/novel trial, the RSI begins now
@@ -967,12 +976,14 @@
                 }
 
                 shouldPostCheck = false;
-
+                
                 // Block feedback
                 if(i + 1 === trialseq.shape()[0] || trialseq.get(i, settings.id.blocknum) !== trialseq.get(i + 1, settings.id.blocknum)) {
 
                     // Save the trial sequence to the server
                     client.save();
+
+                    trialseq.print();
 
                     // Extract current block
                     const block = trialseq.getRowsAndColumnsByCriteria(row => row[settings.id.blocknum] === trialseq.get(i, settings.id.blocknum));
@@ -989,11 +1000,26 @@
                     const err_pct = err ? parseInt((err.shape()[0] / block.shape()[0]) * 100) : 0;
                     const miss_pct = miss ? parseInt((miss.shape()[0] / block.shape()[0]) * 100) : 0;
 
+                    // Get the number of oddballs hit correctly
+                    const ob = block.getRowsAndColumnsByCriteria(row => row[settings.id.oddball] === 1);
+                    const total_obs = ob ? ob.shape()[0] : 0;
+                    var obs_hit = 0;
+                    if(total_obs > 0) {
+                        obs_hit = ob.getRowsAndColumnsByCriteria(row => row[settings.id.feedback_rt] > 0);
+                        if(obs_hit !== null) {
+                            obs_hit = obs_hit.shape()[0];
+                        } else {
+                            obs_hit = 0;
+                        }
+                    }
+
                     // Create block feedback
                     const fb = [
                         `Mean reaction time: ${rt}`,
                         `Errors: ${err_pct}%`,
-                        `Misses: ${miss_pct}%`
+                        `Misses: ${miss_pct}%`,
+                        `Oddballs hit: ${obs_hit}/${total_obs}`,
+                        'Don\'t forget that hitting your oddballs will earn you a bonus!'
                     ];
 
                     // If we aren't at the end of the experiment
@@ -1029,13 +1055,23 @@
             const miss_pct = miss ? parseInt((miss.shape()[0] / block.shape()[0]) * 100) : 0;
 
             // Calculate 75% quartile of MAD
-            const corr = block.getRowsAndColumnsByCriteria(row => row[settings.id.rt] > 0);
-            console.log(corr);
-            const rts = corr.getCol(settings.id.rt);
-            console.log(rts);
-            const mean_absolute_deviation = getStartingDuration(rts);
-            console.log(mean_absolute_deviation);
-            console.log(miss_pct);
+            var corr;
+            var rts = 0;
+            var mean_absolute_deviation = 0;
+
+            if(block) {
+                corr = block.getRowsAndColumnsByCriteria(row => row[settings.id.rt] > 0);
+            }
+
+            if(corr) {
+                rts = corr.getCol(settings.id.rt);
+            }
+
+            if(rts.length > 0) {
+                mean_absolute_deviation = getStartingDuration(rts);
+            } else {
+                mean_absolute_deviation = 550;
+            }
 
             return { err_pct, mean_absolute_deviation, miss_pct };
 
@@ -1070,9 +1106,6 @@
                 mad = results.mean_absolute_deviation;
 
             } while(results.err_pct > 20 || results.miss_pct > 20);
-
-            // Run follow up training
-            await experiment(client, true, results.mean_absolute_deviation);
 
             // Run full experiment
             await experiment(client, false, results.mean_absolute_deviation);
