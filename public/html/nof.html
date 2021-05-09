@@ -105,7 +105,7 @@
                 "I have not yet read and signed the consent document."
             </label>
         </div>
-        <button class='btn btn-primary' id='start-btn' style='display: none;'>Start Experiment</button>
+        <button class='btn btn-primary' id='start-btn' style='display: none;'>Start Experiment</button> 
     </div>
 
     <script>
@@ -1090,6 +1090,9 @@
 
             Psych.init();
 
+            // Instructions
+            await instructions();
+
             // Generate their confirmation code / subject number
             demo.id = uuid();
 
@@ -1112,6 +1115,161 @@
 
             // Finishing screen
             await Psych.welcome({ text: `Task complete! Thank you for participating... here is your confirmation code: ${demo.id}` });
+
+        }
+
+        async function instructions() {
+
+            Psych.clear();
+            Psych.init();
+
+            const dims = Psych.dims();
+            const settings = Settings();
+
+            // Flankers + target stimuli
+            const target = Psych.divWithText({
+                text: '<<<<<',
+                letterSpacing: '3px',
+                color: 'black',
+                fontSize: '8em'
+            }, {
+                top: `${dims.height / 2}px`,
+                left: `${dims.width / 2}px`,
+                borderRadius: '5px',
+                width: '100%',
+                height: '100px',
+                backgroundColor: 'transparent'
+            })
+
+            const instruction_text = Psych.divWithText({
+                text: 'At the start of every trial, this is what will appear. (Press spacebar to continue)',
+                letterSpacing: '3px',
+                color: 'black',
+                fontSize: '1em'
+            }, {
+                top: `${dims.height / 4 * 3}px`,
+                left: `${dims.width / 2}px`,
+                borderRadius: '5px',
+                width: '100%',
+                height: '100px',
+                backgroundColor: 'transparent'
+            })
+
+            const bigCircle = Psych.makeShape('circle', {
+                top: dims.height / 2,
+                left: dims.width / 2,
+                strokeStyle: 'red',
+                fillStyle: 'transparent',
+                lineWidth: 5,
+                size: 200
+            })
+
+            // Oddball
+            const oddball = Psych.makeShape('triangle', {
+                rotate: 180,
+                top: dims.height / 2,
+                left: dims.width / 2,
+                strokeStyle: 'black',
+                fillStyle: 'transparent',
+                lineWidth: 20,
+                size: 300
+            })
+
+            const circle = Psych.makeShape('circle', {
+                top: dims.height / 2,
+                left: dims.width / 2,
+                strokeStyle: 'red',
+                fillStyle: 'transparent',
+                lineWidth: 5,
+                size: 100
+            })
+
+            // Standard event
+            const triangle = Psych.makeShape('triangle', {
+                top: dims.height / 2,
+                left: dims.width / 2,
+                strokeStyle: 'black',
+                fillStyle: 'transparent',
+                lineWidth: 20,
+                size: 300
+            })
+
+            const screenItems = [ target, triangle, circle, bigCircle, instruction_text, oddball ]
+
+            // Prepare all items
+            Psych.prepare(screenItems);
+
+            // Step 1
+            Psych.display([ target, bigCircle, instruction_text ]);
+            await Psych.waitForKey();
+
+            // Step 2
+            Psych.hide([ bigCircle ]);
+            Psych.display([ circle ]);
+            instruction_text.firstChild.innerText = 'Your job is to respond to ONLY THE MIDDLE ITEM (press spacebar to continue)';
+            await Psych.waitForKey();
+
+            // Step 3
+            instruction_text.firstChild.innerText = 'If the middle item points left, respond with the "q" key (press q to continue)';
+            await Psych.waitForKey(81);
+
+            // Step 4
+            target.firstChild.innerText = '<<><<';
+            instruction_text.firstChild.innerText = 'However, if the middle item points right, then respond with the "p" key (press p to continue)';
+            await Psych.waitForKey(80);
+
+            // Step 5
+            Psych.hide([ circle ]);
+            target.firstChild.innerText = '<<<<<';
+            instruction_text.firstChild.innerText = 'Practice a couple more...';
+            await Psych.waitForKey(81);
+
+            target.firstChild.innerText = '>><>>';
+            await Psych.waitForKey(81);
+
+            target.firstChild.innerText = '>>>>>';
+            await Psych.waitForKey(80);
+
+            target.firstChild.innerText = '<<><<';
+            await Psych.waitForKey(80);
+
+            target.firstChild.innerText = '>><>>';
+            await Psych.waitForKey(81);
+
+            // Step 6
+            Psych.hide([ target ]);
+            Psych.display([ triangle ]);
+            instruction_text.firstChild.innerText = 'Good! Now at the end of every trial, you will see this triangle... (press spacebar to continue)';
+            await Psych.waitForKey();
+
+            // Step 7
+            instruction_text.firstChild.innerText = 'DO NOT DO ANYTHING when you see this triangle... (press spacebar to continue)';
+            await Psych.waitForKey();
+
+            // Step 8
+            Psych.hide([ triangle ]);
+            Psych.display([ oddball ]);
+            instruction_text.firstChild.innerText = 'EXCEPT when the triangle is upsidown. If you see an upsidown triangle, you must respond with the spacebar. Use the spacebar now to respond to this triangle.';
+            await Psych.waitForKey();
+
+            // Step 9
+            instruction_text.firstChild.innerText = 'Good job! You successfully responded to the upsidown triangle... (press spacebar to continue)'
+            await Psych.waitForKey();
+
+            // Step 10
+            Psych.hide([ oddball ]);
+            instruction_text.firstChild.innerText = 'It looks like you are getting the hang of it. Now you will complete a simulated training so that you can see what the experiment feels like in real time... (press spacebar to continue)';
+            await Psych.waitForKey();
+
+            // Step 11
+            instruction_text.firstChild.innerText = 'If you complete the training without making too many mistakes, you will then move on to the real experiment. Otherwise, you will be asked to repeat the training... (press spacebar to continue)';
+            await Psych.waitForKey();
+
+            // Step 12
+            instruction_text.firstChild.innerText = 'If you are ready to begin the training, press the spacebar.';
+            await Psych.waitForKey();
+
+            Psych.clear();
 
         }
 
