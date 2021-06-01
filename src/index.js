@@ -679,7 +679,7 @@ class Psych {
         }, options);
 
         const text = document.createElement(_options.tag);
-        text.innerText = _options.text
+        text.innerHTML = _options.text
         text.style.color = _options.color;
         text.style.letterSpacing = _options.letterSpacing;
         text.style.fontSize = _options.fontSize;

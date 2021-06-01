@@ -155,7 +155,7 @@
                     deadline,
                     deadlineAdj: 25,
                     space: 50,
-                    feedback_standard: 200,
+                    feedback_standard: 300,
                     feedback_oddball: 2000,
                     feedback_oddball_comment: 500,
                     feedback_oddball_comment_buffer: 500,
@@ -1013,11 +1013,14 @@
                         }
                     }
 
+                    const error_color = err_pct > 20 ? 'red' : 'green';
+                    const miss_color = miss_pct > 20 ? 'red' : 'green';
+
                     // Create block feedback
                     const fb = [
-                        `Mean reaction time: ${rt}`,
-                        `Errors: ${err_pct}%`,
-                        `Misses: ${miss_pct}%`,
+                        `Mean reaction time: ${rt.toFixed(2)}`,
+                        `Errors: <span style='color: ${error_color};'>${err_pct.toFixed(2)}%</span>`,
+                        `Misses: <span style='color: ${miss_color};'>${miss_pct.toFixed(2)}%</span>`,
                         `Oddballs hit: ${obs_hit}/${total_obs}`,
                         'Don\'t forget that hitting your oddballs will earn you a bonus!'
                     ];
@@ -1090,28 +1093,32 @@
 
             Psych.init();
 
+            await Psych.fullScreen();
+
             // Instructions
             await instructions();
 
-            // Generate their confirmation code / subject number
-            demo.id = uuid();
+            // // Generate their confirmation code / subject number
+            // demo.id = uuid();
 
-            // Create the api client
-            const client = new ApiClient(demo.id, project_name, demo);
+            // // Create the api client
+            // const client = new ApiClient(demo.id, project_name, demo);
 
-            // Keep running training until they pass 75% error rate
-            var mad = 550;
-            var results;
-            do {
+            // // Keep running training until they pass 75% error rate
+            // var mad = 550;
+            // var results;
+            // do {
 
-                // Run training
-                results = await experiment(client, true, mad);
-                mad = results.mean_absolute_deviation;
+            //     // Run training
+            //     results = await experiment(client, true, mad);
+            //     mad = results.mean_absolute_deviation;
 
-            } while(results.err_pct > 20 || results.miss_pct > 20);
+            // } while(results.err_pct > 20 || results.miss_pct > 20);
 
-            // Run full experiment
-            await experiment(client, false, results.mean_absolute_deviation);
+            // // Run full experiment
+            // await experiment(client, false, results.mean_absolute_deviation);
+
+            await Psych.exitFullScreen();
 
             // Finishing screen
             await Psych.welcome({ text: `Task complete! Thank you for participating... here is your confirmation code: ${demo.id}` });
@@ -1138,6 +1145,20 @@
                 borderRadius: '5px',
                 width: '100%',
                 height: '100px',
+                backgroundColor: 'transparent'
+            })
+
+            const missFeedback = Psych.divWithText({
+                text: 'FASTER!',
+                color: 'red',
+                fontWeight: 'bold',
+                letterSpacing: '1px',
+                fontSize: '7em'
+            }, {
+                top: `${dims.height / 2}px`,
+                left: `${dims.width / 2}px`,
+                width: '100%',
+                height: '150px',
                 backgroundColor: 'transparent'
             })
 
@@ -1194,7 +1215,7 @@
                 size: 300
             })
 
-            const screenItems = [ target, triangle, circle, bigCircle, instruction_text, oddball ]
+            const screenItems = [ target, triangle, circle, bigCircle, instruction_text, oddball, missFeedback ];
 
             // Prepare all items
             Psych.prepare(screenItems);
@@ -1236,14 +1257,20 @@
             target.firstChild.innerText = '>><>>';
             await Psych.waitForKey(81);
 
-            // Step 6
+            // Talk about the "faster" feedback
             Psych.hide([ target ]);
+            Psych.display([ missFeedback ]);
+            instruction_text.firstChild.innerText = 'Woah! Looks like you didn\'t respond to that last trial fast enough. If you don\'t respond fast enough, you will be notified with this feedback... (press spacebar to continue)'
+            await Psych.waitForKey();
+
+            // Step 6
+            Psych.hide([ target, missFeedback ]);
             Psych.display([ triangle ]);
             instruction_text.firstChild.innerText = 'Good! Now at the end of every trial, you will see this triangle... (press spacebar to continue)';
             await Psych.waitForKey();
 
             // Step 7
-            instruction_text.firstChild.innerText = 'DO NOT DO ANYTHING when you see this triangle... (press spacebar to continue)';
+            instruction_text.firstChild.innerText = 'Every response will be confirmed by these triangles. DO NOT DO ANYTHING when you see this triangle... (press spacebar to continue)';
             await Psych.waitForKey();
 
             // Step 8
@@ -1278,7 +1305,7 @@
             const loader = Psych.divWithText({
                 color: '#333',
                 fontSize: '1.5em',
-                text: 'Loading...',
+                text: 'Loading... This may take a while...',
                 fontWeight: 'bolder'
             }, {
                 backgroundColor: 'transparent',
