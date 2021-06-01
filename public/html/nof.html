@@ -1098,25 +1098,25 @@
             // Instructions
             await instructions();
 
-            // // Generate their confirmation code / subject number
-            // demo.id = uuid();
+            // Generate their confirmation code / subject number
+            demo.id = uuid();
 
-            // // Create the api client
-            // const client = new ApiClient(demo.id, project_name, demo);
+            // Create the api client
+            const client = new ApiClient(demo.id, project_name, demo);
 
-            // // Keep running training until they pass 75% error rate
-            // var mad = 550;
-            // var results;
-            // do {
+            // Keep running training until they pass 75% error rate
+            var mad = 550;
+            var results;
+            do {
 
-            //     // Run training
-            //     results = await experiment(client, true, mad);
-            //     mad = results.mean_absolute_deviation;
+                // Run training
+                results = await experiment(client, true, mad);
+                mad = results.mean_absolute_deviation;
 
-            // } while(results.err_pct > 20 || results.miss_pct > 20);
+            } while(results.err_pct > 20 || results.miss_pct > 20);
 
-            // // Run full experiment
-            // await experiment(client, false, results.mean_absolute_deviation);
+            // Run full experiment
+            await experiment(client, false, results.mean_absolute_deviation);
 
             await Psych.exitFullScreen();
 
