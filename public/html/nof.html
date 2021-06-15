@@ -1166,13 +1166,14 @@
                 text: 'At the start of every trial, this is what will appear. (Press spacebar to continue)',
                 letterSpacing: '3px',
                 color: 'black',
-                fontSize: '1em'
+                fontSize: '1.3em'
             }, {
                 top: `${dims.height / 4 * 3}px`,
                 left: `${dims.width / 2}px`,
                 borderRadius: '5px',
-                width: '100%',
+                width: '80%',
                 height: '100px',
+                margin: 'auto',
                 backgroundColor: 'transparent'
             })
 
@@ -1266,17 +1267,13 @@
             // Step 6
             Psych.hide([ target, missFeedback ]);
             Psych.display([ triangle ]);
-            instruction_text.firstChild.innerText = 'Good! Now at the end of every trial, you will see this triangle... (press spacebar to continue)';
-            await Psych.waitForKey();
-
-            // Step 7
-            instruction_text.firstChild.innerText = 'Every response will be confirmed by these triangles. DO NOT DO ANYTHING when you see this triangle... (press spacebar to continue)';
+            instruction_text.firstChild.innerText = 'If you respond to the target in time then this triangle will be displayed to you. This means that your response has been confirmed... (press spacebar to continue)';
             await Psych.waitForKey();
 
             // Step 8
             Psych.hide([ triangle ]);
             Psych.display([ oddball ]);
-            instruction_text.firstChild.innerText = 'EXCEPT when the triangle is upsidown. If you see an upsidown triangle, you must respond with the spacebar. Use the spacebar now to respond to this triangle.';
+            instruction_text.firstChild.innerText = 'SOMETIMES the triangle will be upsidown. You must monitor for this. When the triangle is upsidown, you must respond to it using the spacebar as quickly as possible. Use the spacebar now to respond to this triangle.';
             await Psych.waitForKey();
 
             // Step 9
@@ -1293,6 +1290,10 @@
             await Psych.waitForKey();
 
             // Step 12
+            instruction_text.firstChild.innerText = 'The pace of the experiment is quite fast, so be prepared to respond as quickly as you can! (press spacebar to continue)';
+            await Psych.wailForkey();
+
+            // Step 13
             instruction_text.firstChild.innerText = 'If you are ready to begin the training, press the spacebar.';
             await Psych.waitForKey();
 
