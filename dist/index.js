@@ -1275,6 +1275,16 @@ var Psych = function () {
                 }, 300);
             });
         }
+    }, {
+        key: 'hideCursor',
+        value: function hideCursor() {
+            document.body.style.cursor = 'none';
+        }
+    }, {
+        key: 'showCursor',
+        value: function showCursor() {
+            document.body.style.cursor = 'auto';
+        }
     }]);
 
     return Psych;

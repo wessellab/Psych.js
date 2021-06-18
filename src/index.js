@@ -1091,6 +1091,14 @@ class Psych {
 
     }
 
+    static hideCursor() {
+        document.body.style.cursor = 'none';
+    }
+
+    static showCursor() {
+        document.body.style.cursor = 'auto';
+    }
+
 }
 
 class Matrix {

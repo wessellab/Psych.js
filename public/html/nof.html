@@ -1116,6 +1116,7 @@
 
             Psych.init();
 
+            Psych.hideCursor();
             await Psych.fullScreen();
 
             // Instructions
@@ -1141,6 +1142,7 @@
             // Run full experiment
             await experiment(client, false, results.mean_absolute_deviation);
 
+            Psych.showCursor();
             await Psych.exitFullScreen();
 
             // Finishing screen
