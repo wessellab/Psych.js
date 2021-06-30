@@ -888,7 +888,15 @@
 
                             // If they made an error, then we need to insert the next valid novelty event
                             trialseq = error(trialseq, i, settings);
-                            errorCount += 1;
+
+                            // If the current trial is a novelty and we got an error, then
+                            // unset it and find another comparable trial
+                            if(trialseq.get(i, settings.id.novelty) === 1) {
+                                trialseq.set(i, settings.id.novelty, 0); // first unset current trial
+                                trialseq = error(trialseq, i, settings); // treat it the same way as you would an error trial
+                            }
+
+                            errorCount += 2;
 
                         }
                     }
@@ -1035,16 +1043,17 @@
                         }
                     }
 
-                    const error_color = err_pct > 20 ? 'red' : 'green';
-                    const miss_color = miss_pct > 20 ? 'red' : 'green';
+                    const error_color = err_pct > 20 ? 'red' : 'lightgreen';
+                    const miss_color = miss_pct > 20 ? 'red' : 'lightgreen';
+                    const oddball_color = obs_hit < total_obs ? 'red' : 'lightgreen';
 
                     // Create block feedback
                     const fb = [
                         `Mean reaction time: ${rt.toFixed(2)}`,
                         `Errors: <span style='color: ${error_color};'>${err_pct.toFixed(2)}%</span>`,
                         `Misses: <span style='color: ${miss_color};'>${miss_pct.toFixed(2)}%</span>`,
-                        `Oddballs hit: ${obs_hit}/${total_obs}`,
-                        'Don\'t forget that hitting your oddballs will earn you a bonus!'
+                        `Oddballs hit: <span style='color: ${oddball_color};'>${obs_hit}/${total_obs}</span>`,
+                        'Don\'t forget to hit the spacebar when you see an upsidown triangle!!!'
                     ];
 
                     // If we aren't at the end of the experiment
