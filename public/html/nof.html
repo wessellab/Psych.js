@@ -1136,19 +1136,26 @@
             // Create the api client
             const client = new ApiClient(demo.id, project_name, demo);
 
-            // Keep running training until they pass 75% error rate
-            var mad = 550;
+            // Keep running training until they have <20% errors and misses
+            var mad = 500;
             var results;
+            var maxDeadline = 550;
             do {
 
                 // Run training
                 results = await experiment(client, true, mad);
-                mad = results.mean_absolute_deviation;
+
+                if(results.mean_absolute_deviation < maxDeadline) {
+                    mad = results.mean_absolute_deviation
+                } else {
+                    mad = Math.min(mad + 25, 550);
+                }
 
             } while(results.err_pct > 20 || results.miss_pct > 20);
+            console.log(`Starting deadline: ${mad}`);
 
             // Run full experiment
-            await experiment(client, false, results.mean_absolute_deviation);
+            await experiment(client, false, mad);
 
             Psych.showCursor();
             await Psych.exitFullScreen();
@@ -1327,6 +1334,10 @@
             await Psych.waitForKey();
 
             // Step 13
+            instruction_text.firstChild.innerText = 'According to previous studies, workers performed pretty well (above 70% accuracy), with the average response time range 330ms ~ 410ms';
+            await Psych.waitForKey();
+
+            // Step 14
             instruction_text.firstChild.innerText = 'If you are ready to begin the training, press the spacebar.';
             await Psych.waitForKey();
 
