@@ -1010,6 +1010,9 @@
                 // Block feedback
                 if(i + 1 === trialseq.shape()[0] || trialseq.get(i, settings.id.blocknum) !== trialseq.get(i + 1, settings.id.blocknum)) {
 
+                    // First we need to update the trialseq reference to the client in case we appended anything
+                    client.trialseq = trialseq;
+
                     // Save the trial sequence to the server
                     client.save();
 
