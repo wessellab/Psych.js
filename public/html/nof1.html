@@ -817,6 +817,8 @@
             var shouldPostCheck = false; // flag for checking post-target responses
             let [trials] = trialseq.shape();
             var i = 0;
+            var errorCount = 0;
+            var noveltyDisplayCount = 0;
             while(i < trialseq.shape()[0]) {
 
                 console.log(`Trial number: ${i}`);
@@ -964,6 +966,8 @@
                     settings.images.hide_curr_img();
                     settings.images.next();
 
+                    noveltyDisplayCount += 1;
+
                     // Wait out the rest of the RSI
                     await targetEnd.waitUntil(trialseq.get(i, settings.id.rsi));
 
@@ -1002,9 +1006,6 @@
                 }
 
                 shouldPostCheck = false;
-
-                // Adaptive deadline adjustment
-                trialseq = deadlineAdj(trialseq, i, settings);
                 
                 // Block feedback
                 if(i + 1 === trialseq.shape()[0] || trialseq.get(i, settings.id.blocknum) !== trialseq.get(i + 1, settings.id.blocknum)) {
@@ -1057,6 +1058,22 @@
                         `Oddballs hit: <span style='color: ${oddball_color};'>${obs_hit}/${total_obs}</span>`,
                         'Don\'t forget to hit the spacebar when you see an upsidown triangle!!!'
                     ];
+
+                    // If we aren't at the end of the experiment
+                    if(i + 1 !== trialseq.shape()[0]) {
+
+                        // Adjust the deadline for the block if we have to
+                        if(err_pct <= 10 && miss_pct <= 10) {
+                            const currentDeadline = trialseq.get(i, settings.id.deadline);
+                            const newDeadline = currentDeadline - settings.durations.deadlineAdj;
+                            for(let ii = i + 1; ii < trialseq.shape()[0]; ii++) trialseq.set(ii, settings.id.deadline, newDeadline);
+                        } else if (err_pct >= 25 || miss_pct > 10) {
+                            const currentDeadline = trialseq.get(i, settings.id.deadline);
+                            const newDeadline = currentDeadline - settings.durations.deadlineAdj;
+                            for(let ii = i + 1; ii < trialseq.shape()[0]; ii++) trialseq.set(ii, settings.id.deadline, newDeadline);
+                        }
+
+                    }
 
                     await Psych.blockFeedback(fb);
 
@@ -1387,49 +1404,6 @@
             const n = array.length - 1
             const mean = array.reduce((a, b) => a + b) / n
             return Math.sqrt(array.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n)
-        }
-
-        function deadlineAdj(trialseq, i, settings) {
-
-            function deadlineAdjCheck(trialseq, i, settings) {
-                if(
-                    trialseq.get(i, settings.id.acc) === 1 &&
-                    trialseq.get(i - 1, settings.id.acc) === 1 &&
-                    trialseq.get(i - 2, settings.id.acc) === 1 &&
-                    trialseq.get(i - 3, settings.id.acc) === 1 &&
-                    trialseq.get(i - 4, settings.id.acc) === 1
-                ) {
-                    return 'subtract'
-                } else if (trialseq.get(i, settings.id.acc) === 2) {
-                    return 'add'
-                } else {
-                    return 'none'
-                }
-            }
-
-            // We must be at least 5 trials in, and not at the end of the trialseq
-            if(i > 5 && i + 1 !== trialseq.shape()[0]) {
-
-                // Figure out if we should +5ms, -5ms or do nothing
-                const action = deadlineAdjCheck(trialseq, i, settings);
-
-                if(action !== 'none') {
-
-                    // We got an action, so we know we're going to either +-5ms, so first get the current deadline
-                    var deadline = trialseq.get(i, settings.id.deadline);
-
-                    // Now modify it
-                    deadline += action === 'add' ? 5 : -5
-
-                    // Now modify the rest of the trialseq with the new deadline
-                    for(let ii = i + 1; ii < trialseq.shape()[0]; ii++) trialseq.set(ii, settings.id.deadline, deadline);
-
-                }
-
-            }
-
-            return trialseq;
-
         }
 
     </script>
