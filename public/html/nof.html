@@ -1001,8 +1001,10 @@
 
                 shouldPostCheck = false;
 
-                // Adaptive deadline adjustment
-                trialseq = deadlineAdj(trialseq, i, settings);
+                // Adaptive deadline adjustment if full experiment
+                if(!settings.is_training) {
+                    trialseq = deadlineAdj(trialseq, i, settings);
+                }
                 
                 // Block feedback
                 if(i + 1 === trialseq.shape()[0] || trialseq.get(i, settings.id.blocknum) !== trialseq.get(i + 1, settings.id.blocknum)) {
