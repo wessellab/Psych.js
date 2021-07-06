@@ -1324,6 +1324,10 @@
             await Psych.waitForKey();
 
             // Step 14
+            instruction_text.firstChild.innerText = 'There will be 8 blocks in the full experiment. Each block will contain ~72 trials, except for the last block which might be a little bit longer.'
+            await Psych.waitForKey();
+
+            // Step 15
             instruction_text.firstChild.innerText = 'If you are ready to begin the training, press the spacebar.';
             await Psych.waitForKey();
 
