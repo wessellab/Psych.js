@@ -120,7 +120,7 @@
         function Settings(is_training = false, deadline = 850) {
 
             var trials = 72;
-            var blocks = 1;
+            var blocks = 8;
             if(is_training === true) {
                 trials = 36;
                 blocks = 1;
@@ -467,7 +467,7 @@
             matrix.setColFromArray(settings.id.deadline, deadlines);
 
             // Set the block number
-            const blocknums = Matrix.full(matrix.shape()[0], settings.general.blocks);
+            const blocknums = Matrix.full(matrix.shape()[0], settings.general.blocks - 1);
             matrix.setColFromArray(settings.id.blocknum, blocknums);
 
             // Append to the current trialseq
@@ -1100,14 +1100,21 @@
                     const miss_color = miss_pct > 20 ? 'red' : 'lightgreen';
                     const oddball_color = obs_hit < total_obs ? 'red' : 'lightgreen';
 
+                    const currentBlockNum = trialseq.get(i, settings.id.blocknum);
+
                     // Create block feedback
                     const fb = [
+                        `Block: ${currentBlockNum} / ${settings.general.blocks - 1}`,
                         `Mean reaction time: ${rt.toFixed(2)}`,
                         `Errors: <span style='color: ${error_color};'>${err_pct.toFixed(2)}%</span>`,
                         `Misses: <span style='color: ${miss_color};'>${miss_pct.toFixed(2)}%</span>`,
                         `Oddballs hit: <span style='color: ${oddball_color};'>${obs_hit}/${total_obs}</span>`,
                         'Don\'t forget to hit the spacebar when you see an upsidown triangle!!!'
                     ];
+
+                    if(currentBlockNum === settings.general.blocks - 2 && !settings.is_training) {
+                        fb.push('You are on the final block, this block might be a little bit longer than the other blocks.');
+                    }
 
                     await Psych.blockFeedback(fb);
 
