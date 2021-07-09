@@ -120,7 +120,7 @@
         function Settings(is_training = false, deadline = 850) {
 
             var trials = 72;
-            var blocks = 4;
+            var blocks = 1;
             if(is_training === true) {
                 trials = 36;
                 blocks = 1;
@@ -316,7 +316,7 @@
         }
 
         function createAppendableTrialseq(settings, targetCongruency, targetNextTrialCongruency, targetRsi, targetDirection) {
-                const total_rows = 12;
+                const total_rows = 6;
                 var block = new Matrix(total_rows, settings.id.cols());
 
                 const cong_total = total_rows / 2;
@@ -344,13 +344,57 @@
                 block.setColFromArray(settings.id.rsi, rsi);
                 
                 // Select a random location in the middle of the sequence
-                const idx = Matrix.randInt(2, 8);
+                const idx = Matrix.randInt(2, 5);
                 
                 // Just modify things to fit params
-                block.set(idx, settings.id.cong, targetCongruency);
-                block.set(idx + 1, settings.id.cong, targetNextTrialCongruency);
-                block.set(idx, settings.id.rsi, targetRsi);
-                block.set(idx, settings.id.target, targetDirection);
+
+                // First check to see if what we're modifying is different
+                const selectedTrialCongruency = block.get(idx, settings.id.cong);
+                if(selectedTrialCongruency !== targetCongruency) {
+
+                    // Then this means we have to go back and find a trial that is this congruency, and replace it so that this stays counterbalanced
+                    for(i = 0; i < total_rows; i++) {
+                        if(block.get(i, settings.id.cong) === targetCongruency) {
+                            block.set(i, settings.id.cong, selectedTrialCongruency);
+                            break;
+                        }
+                    }
+
+                    // Then set it to be the congruency that we want it to be
+                    block.set(idx, settings.id.cong, targetCongruency);
+
+                }
+
+                const selectedTrialNextTrialCongruency = block.get(idx + 1, settings.id.cong);
+                if(selectedTrialNextTrialCongruency !== targetNextTrialCongruency) {
+
+                    for(i = 0; i < total_rows; i++) {
+                        if(block.get(i, settings.id.cong) === targetNextTrialCongruency) {
+                            block.set(i, settings.id.cong, selectedTrialNextTrialCongruency);
+                            break;
+                        }
+                    }
+
+                    // Then set it to be the congruency that we want it to be
+                    block.set(idx + 1, settings.id.cong, targetNextTrialCongruency);
+
+                }
+
+
+                const selectedTrialRsi = block.get(idx, settings.id.rsi);
+                if(selectedTrialRsi !== targetRsi) {
+
+                    for(i = 0; i < total_rows; i++) {
+                        if(block.get(i, settings.id.rsi) === targetRsi) {
+                            block.set(i, settings.id.rsi, selectedTrialRsi);
+                            break;
+                        }
+                    }
+
+                    // Then set it to be the congruency that we want it to be
+                    block.set(idx, settings.id.rsi, targetRsi);
+
+                }
 
                 // Set it as a novelty
                 block.set(idx, settings.id.novelty, 1);
