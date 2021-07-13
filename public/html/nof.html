@@ -1184,6 +1184,7 @@
             var mad = 500;
             var results;
             var maxDeadline = 550;
+            var practices = 0;
             do {
 
                 // Run training
@@ -1195,11 +1196,15 @@
                     mad = Math.min(mad + 25, 550);
                 }
 
-            } while(results.err_pct > 20 || results.miss_pct > 20);
+                practices += 1;
+
+            } while(results.err_pct > 20 || results.miss_pct > 20 || practices > 2);
             console.log(`Starting deadline: ${mad}`);
 
+            var starting_mad = mad > 500 ? 500 : mad;
+
             // Run full experiment
-            await experiment(client, false, mad);
+            await experiment(client, false, starting_mad);
 
             Psych.showCursor();
             await Psych.exitFullScreen();
