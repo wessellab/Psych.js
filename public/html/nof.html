@@ -466,8 +466,14 @@
             const deadlines = Matrix.full(matrix.shape()[0], trialseq.get(trialnum - 1, settings.id.deadline));
             matrix.setColFromArray(settings.id.deadline, deadlines);
 
+            // Get the number of "block 8"s that we've appended so far
+            const block8Rows = trialseq.getRowsAndColumnsByCriteria(row => row[settings.id.blocknum] == 8);
+            const block8Count = block8Rows ? block8Rows.shape()[0] : 0;
+
+            const newBlockNumber = block8Count < settings.general.trials ? 8 : 9;
+
             // Set the block number
-            const blocknums = Matrix.full(matrix.shape()[0], settings.general.blocks - 1);
+            const blocknums = Matrix.full(matrix.shape()[0], newBlockNumber);
             matrix.setColFromArray(settings.id.blocknum, blocknums);
 
             // Append to the current trialseq
@@ -1187,6 +1193,11 @@
             var practices = 0;
             do {
 
+                if(practices === 1) {
+                    const text = "You did not pass the training. You will be given 1 more practice before the full experiment. Make sure to try your best!";
+                    await Psych.welcome({ text }, 1500);
+                }
+
                 // Run training
                 results = await experiment(client, true, mad);
 
@@ -1198,7 +1209,7 @@
 
                 practices += 1;
 
-            } while(results.err_pct > 20 || results.miss_pct > 20 || practices > 2);
+            } while(results.err_pct > 20 || results.miss_pct > 20 || practices > 1);
             console.log(`Starting deadline: ${mad}`);
 
             var starting_mad = mad > 500 ? 500 : mad;
