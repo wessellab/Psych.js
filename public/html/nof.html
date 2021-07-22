@@ -1191,31 +1191,31 @@
             var results;
             var maxDeadline = 550;
             var practices = 0;
-            do {
+            // do {
 
-                if(practices === 1) {
-                    const text = "You did not pass the training. You will be given 1 more practice before the full experiment. Make sure to try your best!";
-                    await Psych.welcome({ text }, 1500);
-                }
+            //     if(practices === 1) {
+            //         const text = "You did not pass the training. You will be given 1 more practice before the full experiment. Make sure to try your best!";
+            //         await Psych.welcome({ text }, 1500);
+            //     }
 
-                // Run training
-                results = await experiment(client, true, mad);
+            //     // Run training
+            //     results = await experiment(client, true, mad);
 
-                if(results.mean_absolute_deviation < maxDeadline) {
-                    mad = results.mean_absolute_deviation
-                } else {
-                    mad = Math.min(mad + 25, 550);
-                }
+            //     if(results.mean_absolute_deviation < maxDeadline) {
+            //         mad = results.mean_absolute_deviation
+            //     } else {
+            //         mad = Math.min(mad + 25, 550);
+            //     }
 
-                practices += 1;
+            //     practices += 1;
 
-            } while(results.err_pct > 20 || results.miss_pct > 20 || practices > 1);
-            console.log(`Starting deadline: ${mad}`);
+            // } while(results.err_pct > 20 || results.miss_pct > 20 || practices <= 1);
+            // console.log(`Starting deadline: ${mad}`);
 
-            var starting_mad = mad > 500 ? 500 : mad;
+            // var starting_mad = mad > 500 ? 500 : mad;
 
             // Run full experiment
-            await experiment(client, false, starting_mad);
+            await experiment(client, false, 500);
 
             Psych.showCursor();
             await Psych.exitFullScreen();
