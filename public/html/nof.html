@@ -859,7 +859,7 @@
             if(is_training) {
                 text = 'Welcome to the training, you must have <20% errors and <20% misses to move on to the full experiment. Press the space bar to move on...';
             } else {
-                text = 'You are about to begin the full experiment.</br></br>This will consist of 8 blocks of trials. Each block will have ~72 trials.</br></br>Feel free to take a small break between blocks, but do not reload this page or exit full screen mode.</br></br>Press the spacebar to move on...';
+                text = 'You are about to begin the full experiment.</br></br>This will consist of 10 blocks of trials. Each block will have ~72 trials.</br></br>Feel free to take a small break between blocks, but do not reload this page or exit full screen mode.</br></br>Press the spacebar to move on...';
             }
             await Psych.welcome({ text }, 1500)
 
@@ -1110,7 +1110,7 @@
 
                     // Create block feedback
                     const fb = [
-                        `Block: ${currentBlockNum} / ${settings.general.blocks - 1}`,
+                        `Block: ${currentBlockNum + 1} / ${settings.general.blocks + 2}`,
                         `Mean reaction time: ${rt.toFixed(2)}`,
                         `Errors: <span style='color: ${error_color};'>${err_pct.toFixed(2)}%</span>`,
                         `Misses: <span style='color: ${miss_color};'>${miss_pct.toFixed(2)}%</span>`,
@@ -1191,28 +1191,30 @@
             var results;
             var maxDeadline = 550;
             var practices = 0;
-            // do {
+            do {
 
-            //     if(practices === 1) {
-            //         const text = "You did not pass the training. You will be given 1 more practice before the full experiment. Make sure to try your best!";
-            //         await Psych.welcome({ text }, 1500);
-            //     }
+                if(practices === 2) break;
 
-            //     // Run training
-            //     results = await experiment(client, true, mad);
+                if(practices === 1) {
+                    const text = "You did not pass the training. You will be given 1 more practice before the full experiment. Make sure to try your best!";
+                    await Psych.welcome({ text }, 1500);
+                }
 
-            //     if(results.mean_absolute_deviation < maxDeadline) {
-            //         mad = results.mean_absolute_deviation
-            //     } else {
-            //         mad = Math.min(mad + 25, 550);
-            //     }
+                // Run training
+                results = await experiment(client, true, mad);
 
-            //     practices += 1;
+                if(results.mean_absolute_deviation < maxDeadline) {
+                    mad = results.mean_absolute_deviation
+                } else {
+                    mad = Math.min(mad + 25, 550);
+                }
 
-            // } while(results.err_pct > 20 || results.miss_pct > 20 || practices <= 1);
-            // console.log(`Starting deadline: ${mad}`);
+                practices += 1;
 
-            // var starting_mad = mad > 500 ? 500 : mad;
+            } while(results.err_pct > 20 || results.miss_pct > 20);
+            console.log(`Starting deadline: ${mad}`);
+
+            var starting_mad = mad > 500 ? 500 : mad;
 
             // Run full experiment
             await experiment(client, false, 500);
