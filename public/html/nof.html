@@ -1108,9 +1108,11 @@
 
                     const currentBlockNum = trialseq.get(i, settings.id.blocknum);
 
+                    const total_blocks = settings.is_training ? 1 : settings.general.blocks + 2;
+
                     // Create block feedback
                     const fb = [
-                        `Block: ${currentBlockNum + 1} / ${settings.general.blocks + 2}`,
+                        `Block: ${currentBlockNum + 1} / ${total_blocks}`,
                         `Mean reaction time: ${rt.toFixed(2)}`,
                         `Errors: <span style='color: ${error_color};'>${err_pct.toFixed(2)}%</span>`,
                         `Misses: <span style='color: ${miss_color};'>${miss_pct.toFixed(2)}%</span>`,
