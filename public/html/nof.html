@@ -153,7 +153,7 @@
                         long: 3000
                     },
                     minDeadline: 400,
-                    maxDeadline: 550,
+                    maxDeadline: 580,
                     deadline,
                     deadlineAdj: 25,
                     space: 50,
@@ -859,7 +859,7 @@
             if(is_training) {
                 text = 'Welcome to the training, you must have <20% errors and <20% misses to move on to the full experiment. Press the space bar to move on...';
             } else {
-                text = 'You are about to begin the full experiment.</br></br>This will consist of 10 blocks of trials. Each block will have ~72 trials.</br></br>Feel free to take a small break between blocks, but do not reload this page or exit full screen mode.</br></br>Press the spacebar to move on...';
+                text = 'You are about to begin the full experiment.</br></br>This will consist of 10 blocks of trials. Each block will have ~84 trials.</br></br>Feel free to take a small break between blocks, but do not reload this page or exit full screen mode.</br></br>Press the spacebar to move on...';
             }
             await Psych.welcome({ text }, 1500)
 
@@ -868,7 +868,6 @@
             var shouldPostCheck = false; // flag for checking post-target responses
             let [trials] = trialseq.shape();
             var i = 0;
-            var trackCount = 0;
             while(i < trialseq.shape()[0]) {
 
                 console.log(`Trial number: ${i}`);
@@ -1053,14 +1052,9 @@
 
                 shouldPostCheck = false;
 
-                // Adaptive deadline adjustment if full experiment and we've reached 30 trials
-                if(!settings.is_training && trackCount >= 30) {
+                // Adaptive deadline adjustment if full experiment and we've reached 5 trials
+                if(!settings.is_training) {
                     trialseq = deadlineAdj(trialseq, i, settings);
-
-                    // Reset the track count
-                    trackCount = 0
-                } else {
-                    trackCount += 1
                 }
                 
                 // Block feedback
@@ -1208,7 +1202,7 @@
                 if(results.mean_absolute_deviation < maxDeadline) {
                     mad = results.mean_absolute_deviation
                 } else {
-                    mad = Math.min(mad + 25, 550);
+                    mad = Math.min(mad + 10, 550);
                 }
 
                 practices += 1;
@@ -1216,7 +1210,7 @@
             } while(results.err_pct > 20 || results.miss_pct > 20);
             console.log(`Starting deadline: ${mad}`);
 
-            var starting_mad = mad > 500 ? 500 : mad;
+            // var starting_mad = mad > 500 ? 500 : mad;
 
             // Run full experiment
             await experiment(client, false, 500);
@@ -1365,7 +1359,7 @@
             // Talk about the "faster" feedback
             Psych.hide([ target ]);
             Psych.display([ missFeedback ]);
-            instruction_text.firstChild.innerText = 'If you don\'t respond fast enough, you will be notified with this feedback, and the trial will be counted as a miss. (press spacebar to continue)'
+            instruction_text.firstChild.innerText = 'It is very important that you respond as quickly and as accurately as you can on every trial! If you do not respond quickly enough, then you will be notified with this feedback. (press spacebar to continue)'
             await Psych.waitForKey();
 
             // Step 6
@@ -1402,7 +1396,7 @@
             await Psych.waitForKey();
 
             // Step 14
-            instruction_text.firstChild.innerText = 'There will be 8 blocks in the full experiment. Each block will contain ~72 trials, except for the last block which might be a little bit longer.'
+            instruction_text.firstChild.innerText = 'There will be 10 blocks in the full experiment. Each block will contain ~84 trials.'
             await Psych.waitForKey();
 
             // Step 15
@@ -1475,22 +1469,23 @@
 
             function deadlineAdjCheck(trialseq, i, settings) {
 
-                // Gather the accuracies of the past 30 trials
-                var acc = {};
-                for(let ii = i; ii > i - 30; ii--) {
-                    if(!(trialseq.get(ii, settings.id.acc).toString() in acc)) {
-                        acc[trialseq.get(ii, settings.id.acc)] = 1
-                    } else {
-                        acc[trialseq.get(ii, settings.id.acc)] += 1
-                    }
-                }
+                // Gather the accuracies of the past 5 trials
+                var acc = {
+                    '1': 0,
+                    '2': 0,
+                    '999': 0,
+                    '998': 0,
+                    '997': 0
+                };
+                for(let ii = i; ii > i - 5; ii--) acc[trialseq.get(ii, settings.id.acc)] += 1
 
-                const missRate = '999' in acc ? 100 * (acc['999'] / 30) : 0;
-                const errRate = '2' in acc ? 100 * (acc['2'] / 30) : 0;
+                const err_n_miss = acc['999'] + acc['998'] + acc['997'] + acc['2']
+                const correct = acc['1']
+                console.log(acc)
 
-                if(missRate <= 10 && errRate <= 10) {
+                if(correct >= 5) {
                     return 'subtract'
-                } else if (errRate >= 25 || missRate >= 10) {
+                } else if (err_n_miss >= 2) {
                     return 'add'
                 } else {
                     return 'none'
@@ -1498,9 +1493,9 @@
             }
 
             // We must be at least 5 trials in, and not at the end of the trialseq
-            if(i > 30 && i + 1 !== trialseq.shape()[0]) {
+            if(i >= 4 && i + 1 !== trialseq.shape()[0]) {
 
-                // Figure out if we should +5ms, -5ms or do nothing
+                // Figure out if we should +5ms, -3ms or do nothing
                 const action = deadlineAdjCheck(trialseq, i, settings);
 
                 if(action !== 'none') {
@@ -1509,7 +1504,7 @@
                     var deadline = trialseq.get(i, settings.id.deadline);
 
                     // Now modify it
-                    deadline += action === 'add' ? 10 : -10
+                    deadline += action === 'add' ? 5 : -3
 
                     // Cut off the deadline at the minimum
                     deadline = deadline < settings.durations.minDeadline ? settings.durations.minDeadline : deadline
