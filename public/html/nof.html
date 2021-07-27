@@ -859,7 +859,7 @@
             if(is_training) {
                 text = 'Welcome to the training, you must have <20% errors and <20% misses to move on to the full experiment. Press the space bar to move on...';
             } else {
-                text = 'You are about to begin the full experiment.</br></br>This will consist of 10 blocks of trials. Each block will have ~84 trials.</br></br>Feel free to take a small break between blocks, but do not reload this page or exit full screen mode.</br></br>Press the spacebar to move on...';
+                text = 'You are about to begin the full experiment.</br></br>This will consist of 10 blocks of trials. Each block will have 72 trials.</br></br>Feel free to take a small break between blocks, but do not reload this page or exit full screen mode.</br></br>Press the spacebar to move on...';
             }
             await Psych.welcome({ text }, 1500)
 
@@ -1396,7 +1396,7 @@
             await Psych.waitForKey();
 
             // Step 14
-            instruction_text.firstChild.innerText = 'There will be 10 blocks in the full experiment. Each block will contain ~84 trials.'
+            instruction_text.firstChild.innerText = 'There will be 10 blocks in the full experiment. Each block will contain 72 trials.'
             await Psych.waitForKey();
 
             // Step 15
