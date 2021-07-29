@@ -120,7 +120,7 @@
         function Settings(is_training = false, deadline = 850) {
 
             var trials = 72;
-            var blocks = 8;
+            var blocks = 10;
             if(is_training === true) {
                 trials = 36;
                 blocks = 1;
@@ -467,10 +467,10 @@
             matrix.setColFromArray(settings.id.deadline, deadlines);
 
             // Get the number of "block 8"s that we've appended so far
-            const block8Rows = trialseq.getRowsAndColumnsByCriteria(row => row[settings.id.blocknum] == 8);
-            const block8Count = block8Rows ? block8Rows.shape()[0] : 0;
-
-            const newBlockNumber = block8Count < settings.general.trials ? 8 : 9;
+            const block10Rows = trialseq.getRowsAndColumnsByCriteria(row => row[settings.id.blocknum] == 10);
+            const block10Count = block10Rows ? block10Rows.shape()[0] : 0;
+I 
+            const newBlockNumber = block10Count < settings.general.trials ? 10 : 11;
 
             // Set the block number
             const blocknums = Matrix.full(matrix.shape()[0], newBlockNumber);
@@ -859,7 +859,7 @@
             if(is_training) {
                 text = 'Welcome to the training, you must have <20% errors and <20% misses to move on to the full experiment. Press the space bar to move on...';
             } else {
-                text = 'You are about to begin the full experiment.</br></br>This will consist of 10 blocks of trials. Each block will have 72 trials.</br></br>Feel free to take a small break between blocks, but do not reload this page or exit full screen mode.</br></br>Press the spacebar to move on...';
+                text = 'You are about to begin the full experiment.</br></br>This will consist of 12 blocks of trials. Each block will have 72 trials.</br></br>Feel free to take a small break between blocks, but do not reload this page or exit full screen mode.</br></br>Press the spacebar to move on...';
             }
             await Psych.welcome({ text }, 1500)
 
@@ -1396,7 +1396,7 @@
             await Psych.waitForKey();
 
             // Step 14
-            instruction_text.firstChild.innerText = 'There will be 10 blocks in the full experiment. Each block will contain 72 trials.'
+            instruction_text.firstChild.innerText = 'There will be 12 blocks in the full experiment. Each block will contain 72 trials.'
             await Psych.waitForKey();
 
             // Step 15
