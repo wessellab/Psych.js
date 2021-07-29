@@ -469,7 +469,7 @@
             // Get the number of "block 8"s that we've appended so far
             const block10Rows = trialseq.getRowsAndColumnsByCriteria(row => row[settings.id.blocknum] == 10);
             const block10Count = block10Rows ? block10Rows.shape()[0] : 0;
-I 
+ 
             const newBlockNumber = block10Count < settings.general.trials ? 10 : 11;
 
             // Set the block number
