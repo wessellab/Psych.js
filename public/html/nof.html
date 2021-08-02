@@ -1053,9 +1053,9 @@
                 shouldPostCheck = false;
 
                 // Adaptive deadline adjustment if full experiment and we've reached 5 trials
-                if(!settings.is_training) {
-                    trialseq = deadlineAdj(trialseq, i, settings);
-                }
+                // if(!settings.is_training) {
+                //     trialseq = deadlineAdj(trialseq, i, settings);
+                // }
                 
                 // Block feedback
                 if(i + 1 === trialseq.shape()[0] || trialseq.get(i, settings.id.blocknum) !== trialseq.get(i + 1, settings.id.blocknum)) {
@@ -1114,8 +1114,20 @@
                         'Don\'t forget to hit the spacebar when you see an upsidown triangle!!!'
                     ];
 
-                    if(currentBlockNum === settings.general.blocks - 2 && !settings.is_training) {
-                        fb.push('You are on the final block, this block might be a little bit longer than the other blocks.');
+                    // If we aren't at the end of the experiment
+                    if(i + 1 !== trialseq.shape()[0]) {
+
+                        // Adjust the deadline for the block if we have to
+                        if(err_pct <= 10 && miss_pct <= 10) {
+                            const currentDeadline = trialseq.get(i, settings.id.deadline);
+                            const newDeadline = currentDeadline - settings.durations.deadlineAdj;
+                            for(let ii = i + 1; ii < trialseq.shape()[0]; ii++) trialseq.set(ii, settings.id.deadline, newDeadline);
+                        } else if (err_pct >= 25 || miss_pct > 10) {
+                            const currentDeadline = trialseq.get(i, settings.id.deadline);
+                            const newDeadline = currentDeadline - settings.durations.deadlineAdj;
+                            for(let ii = i + 1; ii < trialseq.shape()[0]; ii++) trialseq.set(ii, settings.id.deadline, newDeadline);
+                        }
+
                     }
 
                     await Psych.blockFeedback(fb);
