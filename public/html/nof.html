@@ -1066,8 +1066,6 @@
                     // Save the trial sequence to the server
                     client.save();
 
-                    trialseq.print();
-
                     // Extract current block
                     const block = trialseq.getRowsAndColumnsByCriteria(row => row[settings.id.blocknum] === trialseq.get(i, settings.id.blocknum));
 
@@ -1121,14 +1119,16 @@
                         if(err_pct <= 10 && miss_pct <= 10) {
                             const currentDeadline = trialseq.get(i, settings.id.deadline);
                             const newDeadline = currentDeadline - settings.durations.deadlineAdj;
-                            for(let ii = i + 1; ii < trialseq.shape()[0]; ii++) trialseq.set(ii, settings.id.deadline, newDeadline);
+                            for(let ii = i + 1; ii < trialseq.shape()[0]; ii++) trialseq.set(ii, settings.id.deadline, Math.max(newDeadline, settings.durations.minDeadline));
                         } else if (err_pct >= 25 || miss_pct > 10) {
                             const currentDeadline = trialseq.get(i, settings.id.deadline);
                             const newDeadline = currentDeadline + settings.durations.deadlineAdj;
-                            for(let ii = i + 1; ii < trialseq.shape()[0]; ii++) trialseq.set(ii, settings.id.deadline, newDeadline);
+                            for(let ii = i + 1; ii < trialseq.shape()[0]; ii++) trialseq.set(ii, settings.id.deadline, Math.min(newDeadline, settings.durations.maxDeadline));
                         }
 
                     }
+
+                    trialseq.print();
 
                     await Psych.blockFeedback(fb);
 
