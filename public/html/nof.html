@@ -35,79 +35,6 @@
 </head>
 <body id='root'>
 
-    <div class="index-wrap">
-        <h1 class='index-wrap-title'>Welcome to the Wessel Lab HIT</h1>
-        <h1 class='index-wrap-title'>Read these instructions <span class='text-red'>very carefully!</span></h1>
-        <p class='index-wrap-paragraph'>
-            This HIT will present five arrows (e.g. <<<<< or >><>>) in the middle of your
-            screen. You are asked to respond to only the middle arrow on each trial
-            by pressing the assigned key. It should take approximately 50-60 minutes
-            to complete this task. (Your participation time is going to be logged).
-        </p>
-        <p class='index-wrap-paragraph'>
-            <span class='bold'>
-                There are several things you must do for a successful participation.
-            </span>
-            <ol>
-                <li class='list-item text-red'>
-                    Close all tabs and applications except the Amazon Mechanical Turk code submission
-                    tab and the current study tab in your internet browser.
-                </li>
-                <li class='list-item text-red'>
-                    Maximize your browser to full screen, and do not change this until
-                    you have fully completed the experiment.
-                </li>
-                <li class='list-item'>
-                    Please try your best and devote all of your attention to the task. We
-                    are applying <span class='text-purple'>*rejection/bonus criteria*</span>
-                    to encourage workers to give their full attention during participation.
-                </li>
-                <li class='list-item'>
-                    You will be given <span class='text-blue'>a confirmation code</span>
-                    after you finish the experiment. Please copy and submit the code
-                    to Amazon MTurk.
-                </li>
-            </ol>
-        </p>
-        <p class='index-wrap-paragraph'>
-            <span class='bold'>
-                According to previous studies, workers performed pretty well (above)
-                70% accuracy.
-            </span>
-            <span class='text-purple'>
-                If you try your best on the task, we guarantee that you will get a
-                small bonus from $0.5 up to $6 (for the top 3% of participants) in addition
-                to the base pay of $4! Most participants in the past got
-                <span class='text-red'>$7.5-$10</span> from this task when they 'fully engaged'
-                in the study for about an hour participation.
-            </span>
-        </p>
-        <p class='index-wrap-paragraph'>
-            Before you proceed, you are asked to <span class='bold'>read and submit
-            the consent document</span> in the link below. It explains your rights
-            as a human participant in our research. If you don't sign and submit
-            it before you start the study, your participation cannot be confirmed
-            by the <span class='bold'>Institutional Review Board (IRB) of the
-            University of Iowa.</span> If you do not follow these instructions, you will
-            <span class='bold text-red'>NOT BE PAID</span> even if you finish the HIT.
-            Please click the consent document button and submit your consent first.
-        </p>
-        <a class='btn btn-primary' href='https://redcap.icts.uiowa.edu/redcap/surveys/?s=TPEF9MJTPJ' target='_blank' >Consent Document</a>
-        <div class="form-check">
-            <input class="form-check-input" type="radio" name="exampleRadios" id="consent-confirmed" value="option1">
-            <label class="form-check-label" for="exampleRadios1">
-                "I have read and signed the consent document"
-            </label>
-        </div>
-        <div class="form-check">
-            <input class="form-check-input" type="radio" name="exampleRadios" id="exampleRadios2" value="option2" checked>
-            <label class="form-check-label" for="exampleRadios2">
-                "I have not yet read and signed the consent document."
-            </label>
-        </div>
-        <button class='btn btn-primary' id='start-btn' style='display: none;'>Start Experiment</button> 
-    </div>
-
     <script>
 
         function uuid(){  
@@ -1169,6 +1096,67 @@
 
         }
         
+        async function startScreen() {
+            return new Promise((resolve) => {
+
+                // Start button
+                const button = document.createElement('button');
+                button.className = 'btn btn-primary';
+                button.innerText = 'Start Experiment';
+                button.style.position = 'absolute';
+                button.style.top = '50%';
+                button.style.left = '50%';
+                button.style.transform = 'translate(-50%, -50%)';
+
+                // Connect elements
+                document.getElementById('root').appendChild(button);
+
+                // Add event listener
+                button.addEventListener('click', () => {
+                    console.log('Click');
+                    resolve();
+                })
+
+            })
+        }
+
+        async function askShouldMoveOn() {
+            return new Promise((resolve) => {
+
+                Psych.showCursor();
+
+                // Clear the screen
+                Psych.clear();
+
+                // Yes button
+                const yesButton = document.createElement('button');
+                yesButton.className = 'btn btn-success';
+                yesButton.innerText = 'Move on to full experiment';
+                yesButton.style.margin = '25px';
+
+                // No button
+                const noButton = document.createElement('button');
+                noButton.className = 'btn btn-danger';
+                noButton.innerText = 'Repeat training';
+                noButton.style.margin = '25px';
+
+                // Container
+                const container = document.createElement('div');
+                container.style.display = 'flex';
+                container.style.justifyContent = 'center';
+                container.style.alignItems = 'center';
+                container.style.height = '100%';
+
+                container.appendChild(yesButton);
+                container.appendChild(noButton);
+                document.getElementById('root').appendChild(container);
+
+                yesButton.addEventListener('click', () => { Psych.hideCursor(); Psych.clear(); resolve(true) });
+                noButton.addEventListener('click', () => { Psych.hideCursor(); Psych.clear(); resolve(false) });
+
+            })
+        }
+
         async function main() {
 
             // Project vars
@@ -1177,10 +1165,9 @@
             // Clear the DOM
             Psych.clear();
 
-            // Get demographic information
-            const demo = await Psych.demographics();
-
             Psych.init();
+
+            await startScreen();
 
             Psych.hideCursor();
             await Psych.fullScreen();
@@ -1189,40 +1176,21 @@
             await instructions();
 
             // Generate their confirmation code / subject number
-            demo.id = uuid();
+            const subject_id = uuid();
 
             // Create the api client
-            const client = new ApiClient(demo.id, project_name, demo);
+            const client = new ApiClient(subject_id, project_name, {});
 
             // Keep running training until they have <20% errors and misses
-            var mad = 500;
-            var results;
-            var maxDeadline = 550;
-            var practices = 0;
-            do {
-
-                if(practices === 2) break;
-
-                if(practices === 1) {
-                    const text = "You did not pass the training. You will be given 1 more practice before the full experiment. Make sure to try your best!";
-                    await Psych.welcome({ text }, 1500);
-                }
+            var shouldMoveOn = false;
+            while(!shouldMoveOn) {
 
                 // Run training
-                results = await experiment(client, true, mad);
+                await experiment(client, true, 500);
 
-                if(results.mean_absolute_deviation < maxDeadline) {
-                    mad = results.mean_absolute_deviation
-                } else {
-                    mad = Math.min(mad + 10, 550);
-                }
+                shouldMoveOn = await askShouldMoveOn();
 
-                practices += 1;
-
-            } while(results.err_pct > 20 || results.miss_pct > 20);
-            console.log(`Starting deadline: ${mad}`);
-
-            // var starting_mad = mad > 500 ? 500 : mad;
+            };
 
             // Run full experiment
             await experiment(client, false, 500);
@@ -1231,7 +1199,7 @@
             await Psych.exitFullScreen();
 
             // Finishing screen
-            await Psych.welcome({ text: `Task complete! Thank you for participating... here is your confirmation code: ${demo.id}` });
+            await Psych.welcome({ text: `Task complete! Thank you for participating!` });
 
         }
 
@@ -1538,11 +1506,9 @@
     </script>
 
     <script>
-        document.getElementById('consent-confirmed').addEventListener('click', e => {
-            const startBtn = document.getElementById('start-btn');
-            startBtn.addEventListener('click', main);
-            startBtn.style.display = 'block';
-        });
+        
+        main();
+
     </script>
 
 </body>
