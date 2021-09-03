@@ -1021,8 +1021,8 @@
                         }
                     }
 
-                    const error_color = err_pct > 10 ? 'red' : 'lightgreen';
-                    const miss_color = miss_pct > 20 ? 'red' : 'lightgreen';
+                    const error_color = err_pct > 20 ? 'red' : 'lightgreen';
+                    const miss_color = miss_pct > 10 ? 'red' : 'lightgreen';
                     const oddball_color = obs_hit < total_obs ? 'red' : 'lightgreen';
 
                     const currentBlockNum = trialseq.get(i, settings.id.blocknum);
