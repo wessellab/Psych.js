@@ -82,7 +82,7 @@
                     minDeadline: 400,
                     maxDeadline: 600,
                     deadline,
-                    deadlineAdj: 25,
+                    deadlineAdj: 15,
                     space: 50,
                     feedback_standard: 300,
                     feedback_oddball: 2000,
@@ -1183,17 +1183,22 @@
 
             // Keep running training until they have <20% errors and misses
             var shouldMoveOn = false;
+            var startingDeadline = 500;
             while(!shouldMoveOn) {
 
                 // Run training
-                await experiment(client, true, 500);
+                const p = await experiment(client, true, startingDeadline);
+
+                if(p.miss_pct > 20) {
+                    startingDeadline = 550
+                }
 
                 shouldMoveOn = await askShouldMoveOn();
 
             };
 
             // Run full experiment
-            await experiment(client, false, 500);
+            await experiment(client, false, startingDeadline);
 
             Psych.showCursor();
             await Psych.exitFullScreen();
