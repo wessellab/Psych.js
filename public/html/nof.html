@@ -86,8 +86,8 @@
                     space: 50,
                     feedback_standard: 300,
                     feedback_oddball: 2000,
-                    feedback_oddball_comment: 500,
-                    feedback_oddball_comment_buffer: 500,
+                    feedback_oddball_comment: 1500,
+                    feedback_oddball_comment_buffer: 1000,
                     novelty: 200,
                     novelty_buffer: 500,
                     missFeedback: 500,
@@ -713,8 +713,8 @@
                 left: dims.width / 2,
                 strokeStyle: 'black',
                 fillStyle: settings.colors.bgColor,
-                lineWidth: 20,
-                size: 300
+                lineWidth: 10,
+                size: 200
             })
 
             // Oddball
@@ -724,8 +724,8 @@
                 left: dims.width / 2,
                 strokeStyle: 'black',
                 fillStyle: settings.colors.bgColor,
-                lineWidth: 20,
-                size: 300
+                lineWidth: 10,
+                size: 200
             })
 
             // Correct feedback
@@ -734,7 +734,8 @@
                 color: 'blue',
                 fontWeight: 'bold',
                 letterSpacing: '1px',
-                fontSize: '7em'
+                fontSize: '5em',
+                fontWeight: '500'
             }, {
                 top: `${dims.height / 2}px`,
                 left: `${dims.width / 2}px`,
@@ -748,7 +749,8 @@
                 text: 'You took too long to respond!',
                 color: '#FF0000',
                 letterSpacing: '1px',
-                fontSize: '3em'
+                fontSize: '4em',
+                fontWeight: '500'
             }, {
                 top: `${dims.height / 2}px`,
                 left: `${dims.width / 2}px`,
@@ -761,9 +763,9 @@
             const missFeedback = Psych.divWithText({
                 text: 'FASTER!',
                 color: 'red',
-                fontWeight: 'bold',
-                letterSpacing: '1px',
-                fontSize: '7em'
+                fontWeight: '500',
+                letterSpacing: '2px',
+                fontSize: '5em'
             }, {
                 top: `${dims.height / 2}px`,
                 left: `${dims.width / 2}px`,
