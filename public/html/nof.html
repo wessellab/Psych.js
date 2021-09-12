@@ -86,12 +86,12 @@
                     space: 50,
                     feedback_standard: 300,
                     feedback_oddball: 2000,
-                    feedback_oddball_comment: 1500,
+                    feedback_oddball_comment: 1200,
                     feedback_oddball_comment_buffer: 1000,
                     novelty: 200,
                     novelty_buffer: 500,
-                    missFeedback: 500,
-                    missFeedbackBuffer: 1000
+                    missFeedback: 1500,
+                    missFeedbackBuffer: 500
                 },
                 acc: {
                     miss: 999,
@@ -1023,9 +1023,9 @@
                         }
                     }
 
-                    const error_color = err_pct > 20 ? 'red' : 'lightgreen';
-                    const miss_color = miss_pct > 10 ? 'red' : 'lightgreen';
-                    const oddball_color = obs_hit < total_obs ? 'red' : 'lightgreen';
+                    const error_color = err_pct > 20 ? 'red' : 'green';
+                    const miss_color = miss_pct > 10 ? 'red' : 'green';
+                    const oddball_color = obs_hit < total_obs ? 'red' : 'green';
 
                     const currentBlockNum = trialseq.get(i, settings.id.blocknum);
 
